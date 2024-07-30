@@ -20,6 +20,17 @@ with Path.open(json_path) as tags_json:
     tours = tags_dict["tours"]
 
 
+async def get_tour(tour_tag: str, cur: psycopg.AsyncCursor) -> str:
+    """Get the proper tour id for a given tag."""
+    res = await cur.execute(
+        """SELECT brucebase_id FROM tours WHERE brucebase_tag=%s;""",
+        (tour_tag,),
+    )
+
+    tour = await res.fetchone()
+    return tour["brucebase_id"]
+
+
 async def get_tags(
     soup: bs4,
     event_id: str,
@@ -32,7 +43,7 @@ async def get_tags(
     tags = {
         "bootleg": False,
         "official": False,
-        "tour": [],
+        "tour": None,
         "other_tags": [],
     }
 
@@ -47,7 +58,7 @@ async def get_tags(
                     case "retail" | "livedl":
                         tags["official"] = True
             elif tours.get(f"{i.text}"):
-                tags["tour"].append(i.text)
+                tags["tour"] = await get_tour(i.text, cur)
 
             if i.text not in tags["other_tags"]:
                 tags["other_tags"].append(i.text)
@@ -57,7 +68,7 @@ async def get_tags(
                 """UPDATE "event_details" SET tour = %s, bootleg = %s,
                 official = %s WHERE event_id = %s""",
                 (
-                    ", ".join(tags["tour"]),
+                    tags["tour"],
                     tags["bootleg"],
                     tags["official"],
                     event_id,

@@ -15,7 +15,7 @@ async def get_country_from_abbrev(state_abbrev: str, cur: psycopg.AsyncCursor) -
             """SELECT
                 c.name
             FROM "states" s
-            LEFT JOIN "countries" c ON c.id = s.state_country
+            LEFT JOIN "countries" c ON c.name = s.state_country
             WHERE s.state_abbrev=%s;""",
             (state_abbrev,),
         )
