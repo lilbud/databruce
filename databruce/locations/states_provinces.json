@@ -1,0 +1,246 @@
+{
+    "AB": {
+        "fullname": "Alberta",
+        "country": "Canada"
+    },
+    "AK": {
+        "fullname": "Alaska",
+        "country": "USA"
+    },
+    "AL": {
+        "fullname": "Alabama",
+        "country": "USA"
+    },
+    "AR": {
+        "fullname": "Arkansas",
+        "country": "USA"
+    },
+    "AS": {
+        "fullname": "American Samoa",
+        "country": "USA"
+    },
+    "AZ": {
+        "fullname": "Arizona",
+        "country": "USA"
+    },
+    "BC": {
+        "fullname": "British Columbia",
+        "country": "Canada"
+    },
+    "CA": {
+        "fullname": "California",
+        "country": "USA"
+    },
+    "CO": {
+        "fullname": "Colorado",
+        "country": "USA"
+    },
+    "CT": {
+        "fullname": "Connecticut",
+        "country": "USA"
+    },
+    "DC": {
+        "fullname": "Washington, DC",
+        "country": "USA"
+    },
+    "DE": {
+        "fullname": "Delaware",
+        "country": "USA"
+    },
+    "FL": {
+        "fullname": "Florida",
+        "country": "USA"
+    },
+    "GA": {
+        "fullname": "Georgia",
+        "country": "USA"
+    },
+    "GU": {
+        "fullname": "Guam",
+        "country": "USA"
+    },
+    "HI": {
+        "fullname": "Hawaii",
+        "country": "USA"
+    },
+    "IA": {
+        "fullname": "Iowa",
+        "country": "USA"
+    },
+    "ID": {
+        "fullname": "Idaho",
+        "country": "USA"
+    },
+    "IL": {
+        "fullname": "Illinois",
+        "country": "USA"
+    },
+    "IN": {
+        "fullname": "Indiana",
+        "country": "USA"
+    },
+    "KS": {
+        "fullname": "Kansas",
+        "country": "USA"
+    },
+    "KY": {
+        "fullname": "Kentucky",
+        "country": "USA"
+    },
+    "LA": {
+        "fullname": "Louisiana",
+        "country": "USA"
+    },
+    "MA": {
+        "fullname": "Massachusetts",
+        "country": "USA"
+    },
+    "MB": {
+        "fullname": "Manitoba",
+        "country": "Canada"
+    },
+    "MD": {
+        "fullname": "Maryland",
+        "country": "USA"
+    },
+    "ME": {
+        "fullname": "Maine",
+        "country": "USA"
+    },
+    "MI": {
+        "fullname": "Michigan",
+        "country": "USA"
+    },
+    "MN": {
+        "fullname": "Minnesota",
+        "country": "USA"
+    },
+    "MO": {
+        "fullname": "Missouri",
+        "country": "USA"
+    },
+    "MS": {
+        "fullname": "Mississippi",
+        "country": "USA"
+    },
+    "MT": {
+        "fullname": "Montana",
+        "country": "USA"
+    },
+    "NA": {
+        "fullname": "National",
+        "country": "USA"
+    },
+    "NB": {
+        "fullname": "New Brunswick",
+        "country": "Canada"
+    },
+    "NC": {
+        "fullname": "North Carolina",
+        "country": "USA"
+    },
+    "ND": {
+        "fullname": "North Dakota",
+        "country": "USA"
+    },
+    "NE": {
+        "fullname": "Nebraska",
+        "country": "USA"
+    },
+    "NH": {
+        "fullname": "New Hampshire",
+        "country": "USA"
+    },
+    "NJ": {
+        "fullname": "New Jersey",
+        "country": "USA"
+    },
+    "NM": {
+        "fullname": "New Mexico",
+        "country": "USA"
+    },
+    "NV": {
+        "fullname": "Nevada",
+        "country": "USA"
+    },
+    "NY": {
+        "fullname": "New York",
+        "country": "USA"
+    },
+    "OH": {
+        "fullname": "Ohio",
+        "country": "USA"
+    },
+    "OK": {
+        "fullname": "Oklahoma",
+        "country": "USA"
+    },
+    "ON": {
+        "fullname": "Ontario",
+        "country": "Canada"
+    },
+    "OR": {
+        "fullname": "Oregon",
+        "country": "USA"
+    },
+    "PA": {
+        "fullname": "Pennsylvania",
+        "country": "USA"
+    },
+    "PR": {
+        "fullname": "Puerto Rico",
+        "country": "USA"
+    },
+    "QC": {
+        "fullname": "Quebec",
+        "country": "Canada"
+    },
+    "RI": {
+        "fullname": "Rhode Island",
+        "country": "USA"
+    },
+    "SC": {
+        "fullname": "South Carolina",
+        "country": "USA"
+    },
+    "SD": {
+        "fullname": "South Dakota",
+        "country": "USA"
+    },
+    "TN": {
+        "fullname": "Tennessee",
+        "country": "USA"
+    },
+    "TX": {
+        "fullname": "Texas",
+        "country": "USA"
+    },
+    "UT": {
+        "fullname": "Utah",
+        "country": "USA"
+    },
+    "VA": {
+        "fullname": "Virginia",
+        "country": "USA"
+    },
+    "VT": {
+        "fullname": "Vermont",
+        "country": "USA"
+    },
+    "WA": {
+        "fullname": "Washington",
+        "country": "USA"
+    },
+    "WI": {
+        "fullname": "Wisconsin",
+        "country": "USA"
+    },
+    "WV": {
+        "fullname": "West Virginia",
+        "country": "USA"
+    },
+    "WY": {
+        "fullname": "Wyoming",
+        "country": "USA"
+    }
+}

@@ -1,0 +1,9 @@
+$Env:PGPASSWORD='password'; psql -U postgres -w -d databruce -f .\pg_schema.sql
+$Env:PGPASSWORD='password'; psql -U postgres -w -d databruce -f .\pg_data.sql
+$Env:PGPASSWORD='password'; psql -U postgres -w -d databruce -f .\pg_foreignkeys.sql
+---
+COMMAND TO DUMP DATABASE TO TAR:
+	$Env:PGPASSWORD='password'; pg_dump -U postgres -d databruce -F t -f out.tar
+
+COMMAND TO RESTORE TAR DATABASE DUMP:
+	$Env:PGPASSWORD='password'; pg_restore --verbose --clean -U postgres -d databruce out.tar
