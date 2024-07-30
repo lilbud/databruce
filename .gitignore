@@ -1,10 +1,10 @@
 .env
 _notes/
 scripts/
-databruce/database/_schema/OLD
-databruce/database/functions
-databruce/database/old
-databruce/database/_logs
+databruce/database/_schema/*
+databruce/database/functions/*
+databruce/database/old/*
+databruce/database/_logs/*
 __pycache__
 *.sqlite
 \.vscode
