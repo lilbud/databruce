@@ -4,6 +4,7 @@
 #### People:
 - mgravitt2 (GreasyLake forum) - release dates of 2014, 2016-17, 2023 official live downloads. Dates are approximate and are within a day or two of the actual release date. Date listed is when he downloaded them.
 - mjk5510 - runs the "Multiple Recorder Project". Which tracks all the various audience tape versions of shows that are circulating. Originally I had a version of the list from 2014, and added that info into the database. I attempted to find an updated version with no luck, eventually messaged mjk5510 on DIME and asked about a new copy of the list. Bit later I received a new copy of the project spreadsheet from January 2024, with it being as up to date as it can be. In that time (10 years!), the list went from 82 shows/194 recorders to 237 shows/601 recorders. Most of which I was able to find a match for in the springsteenlyrics dataset. With an additional 72 recorders being added manually.
+- the r/brucespringsteen Discord server - primary residence of the bot, unwitting beta testers for the last year+.
 
 #### Sources
 - Brucebase - the main source of the data concerning bruces live shows, although data was heavily modified after the fact to fit database.
