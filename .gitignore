@@ -8,3 +8,4 @@ databruce/database/_logs/*
 __pycache__
 *.sqlite
 \.vscode
+*.ps1
