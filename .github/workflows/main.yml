@@ -49,15 +49,15 @@ jobs:
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install-ubuntu.sh | sh
 
-      # - name: Set up Python 3.x
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: 3.12
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
 
-      # - name: Install dependencies
-      #   run: |
-      #     python -m pip install --upgrade pip
-      #     python -m pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
     
       - name: Heroku login credentials
         run: |
@@ -75,12 +75,23 @@ jobs:
       
       - name: pull heroku db and load into db
         run: |
-          pg_dump -Ft --no-acl --no-owner ${{ secrets.HEROKU_DB_URL }} > latest.tar
+          pg_dump -Ft --no-acl --no-owner $HEROKU_DB_URL > latest.tar
           pg_restore --verbose --clean --if-exists --no-acl --no-owner -h postgres -U postgres -d databruce latest.tar
         env:
           PGPASSWORD: password
+          HEROKU_DB_URL: ${{ secrets.HEROKU_DB_URL }}
       
       - name: test query
         run: psql -h postgres -U postgres -d databruce -c 'SELECT brucebase_url FROM events LIMIT 1'
         env:
           PGPASSWORD: password
+      
+      - name: get updates
+        run: python ./databruce/insert_data.py
+        env:
+          LOCAL_DB_URL: postgresql://postgres:password@postgres:5432/databruce
+      
+      - name: push to heroku
+        run: heroku pg:push $LOCAL_DB_URL DATABASE_URL --app brucebot-discord
+        env:
+          LOCAL_DB_URL: postgresql://postgres:password@postgres:5432/databruce
