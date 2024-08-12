@@ -75,8 +75,8 @@ jobs:
       
       - name: pull heroku db
         run: |
-          pg_dump -Fp --no-acl --no-owner ${{ secrets.HEROKU_DB_URL }} > latest.dump
-
+          # heroku pg:backups:capture --app ${{ secrets.HEROKU_APP_NAME }}
+          # heroku pg:backups:download -o latest.dump --app ${{ secrets.HEROKU_APP_NAME }}
 
       - name: load heroku dump
         run: |
