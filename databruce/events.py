@@ -112,7 +112,7 @@ async def get_events(pool: AsyncConnectionPool) -> None:
                             (event_id, event_date, brucebase_url)
                             VALUES (%s, %s, %s) ON CONFLICT
                             (event_id, event_date, brucebase_url)
-                            DO NOTHING""",
+                            DO NOTHING RETURNING *""",
                         (event_id, event_date, event_url),
                     )
                 except (psycopg.OperationalError, psycopg.IntegrityError) as e:

@@ -123,7 +123,7 @@ async def get_songs(pool: AsyncConnectionPool) -> None:
         try:
             await cur.executemany(
                 """INSERT INTO "songs" (brucebase_url, song_name)
-                        VALUES (%s, %s) ON CONFLICT(brucebase_url) DO NOTHING""",
+                        VALUES (%s, %s) ON CONFLICT(brucebase_url) DO NOTHING RETURNING *""",
                 (links),
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:

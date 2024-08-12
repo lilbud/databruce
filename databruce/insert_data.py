@@ -9,6 +9,7 @@ import asyncio
 import datetime
 import time
 
+from archive_org import get_recent_archives
 from covers import get_covers
 from database import db
 from event_page import scrape_event_page
@@ -91,6 +92,7 @@ async def main(pool: AsyncConnectionPool) -> None:
         await update_get_new(pool)
         await update_existing(pool)
         await update_stats(pool)
+        await get_recent_archives(pool)
 
 
 if __name__ == "__main__":

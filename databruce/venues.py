@@ -129,7 +129,8 @@ async def get_venues(pool: AsyncConnectionPool) -> None:
                         (brucebase_url, name, city, state, country)
                         VALUES (%(id)s,%(name)s,%(city)s,%(state)s,%(country)s)
                         ON CONFLICT (brucebase_url) DO UPDATE SET name=%(name)s,
-                        city=%(city)s, state=%(state)s, country=%(country)s""",
+                        city=%(city)s, state=%(state)s, country=%(country)s
+                        RETURNING *""",
                     venue,
                 )
             except (psycopg.OperationalError, psycopg.IntegrityError) as e:

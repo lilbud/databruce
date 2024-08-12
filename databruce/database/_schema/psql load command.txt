@@ -7,3 +7,10 @@ COMMAND TO DUMP DATABASE TO TAR:
 
 COMMAND TO RESTORE TAR DATABASE DUMP:
 	$Env:PGPASSWORD='password'; pg_restore --verbose --clean -U postgres -d databruce out.tar
+	
+HEROKU backup and load
+	heroku pg:backups:capture --app brucebot-discord
+	heroku pg:backups:download --app brucebot-discord
+
+Load heroku backup into local database
+	$Env:PGPASSWORD='password'; pg_restore --verbose --clean --no-acl --no-owner -U postgres -d databruce latest.dump
