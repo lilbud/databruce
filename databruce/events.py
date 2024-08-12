@@ -110,10 +110,10 @@ async def get_events(pool: AsyncConnectionPool) -> None:
                     await cur.execute(
                         """INSERT INTO "events"
                             (event_id, event_date, brucebase_url)
-                            VALUES (%s, %s, %s) ON CONFLICT
+                            VALUES (%(id)s, %(date)s, %(url)s) ON CONFLICT
                             (event_id, event_date, brucebase_url)
                             DO NOTHING RETURNING *""",
-                        (event_id, event_date, event_url),
+                        {"id": event_id, "date": event_date, "url": event_url},
                     )
                 except (psycopg.OperationalError, psycopg.IntegrityError) as e:
                     print("Could not complete operation:", e)
