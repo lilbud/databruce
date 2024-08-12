@@ -5,3 +5,4 @@ ftfy
 titlecase
 python-dotenv
 internetarchive
+psycopg_pool
