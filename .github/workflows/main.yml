@@ -41,6 +41,11 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
       
+      - name: Install PostgreSQL client
+        run: |
+          apt-get update
+          apt-get install --yes postgresql-client
+
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install-ubuntu.sh | sh
 
@@ -80,5 +85,6 @@ jobs:
           PGPASSWORD: password
       
       - name: test query
-        run: |
-          psql -h postgres -U postgres -d databruce -c 'SELECT brucebase_url FROM events LIMIT 1'
+        run: psql -h postgres -U postgres -d databruce -c 'SELECT brucebase_url FROM events LIMIT 1'
+        env:
+          PGPASSWORD: password
