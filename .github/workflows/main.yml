@@ -40,6 +40,9 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
+      
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install-ubuntu.sh | sh
 
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
@@ -75,3 +78,7 @@ jobs:
           pg_restore --verbose --clean --no-acl --no-owner -h postgres -U postgres -d databruce latest.dump
         env:
           PGPASSWORD: password
+      
+      - name: test query
+        run: |
+          psql -h postgres -U postgres -d databruce -c 'SELECT brucebase_url FROM events LIMIT 1'
