@@ -73,14 +73,10 @@ jobs:
             HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
             HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
       
-      - name: pull heroku db
+      - name: pull heroku db and load into db
         run: |
-          # heroku pg:backups:capture --app ${{ secrets.HEROKU_APP_NAME }}
-          # heroku pg:backups:download -o latest.dump --app ${{ secrets.HEROKU_APP_NAME }}
-
-      - name: load heroku dump
-        run: |
-          pg_restore --verbose --clean --no-acl --no-owner -h postgres -U postgres -d databruce latest.dump
+          pg_dump -Ft --no-acl --no-owner ${{ secrets.HEROKU_DB_URL }} > latest.tar
+          pg_restore --verbose --clean --no-acl --no-owner -h postgres -U postgres -d databruce latest.tar
         env:
           PGPASSWORD: password
       
