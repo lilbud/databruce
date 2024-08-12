@@ -75,20 +75,9 @@ jobs:
       
       - name: pull heroku db
         run: |
-          heroku pg:backups:capture --app ${{ secrets.HEROKU_APP_NAME }}
-          heroku pg:backups:download --app ${{ secrets.HEROKU_APP_NAME }}
+          pg_dump -Fp --no-acl --no-owner ${{ secrets.HEROKU_DB_URL }} > latest.dump
 
-      - name: Upload db_dump
-        uses: actions/upload-artifact@v4
-        with:
-            name: heroku_backup
-            path: latest.dump
 
-      - name: Upload db_dump
-        uses: actions/download-artifact@v4
-        with:
-            name: heroku_backup
-      
       - name: load heroku dump
         run: |
           pg_restore --verbose --clean --no-acl --no-owner -h postgres -U postgres -d databruce latest.dump
