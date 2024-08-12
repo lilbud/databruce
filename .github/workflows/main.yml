@@ -1,49 +1,77 @@
-# name: update database
-# on:
-#   schedule:
-#     - cron: "0 6 * * *"
-# jobs:
-#   container-job:
-#     # Containers must run in Linux based operating systems
-#     runs-on: ubuntu-latest
-#     # Docker Hub image that `container-job` executes in
-#     container: node:10.18-jessie
+name: update database
+on:
+  push:
+  # schedule:
+  #   - cron: "0 6 * * *"
+jobs:
+  container-job:
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    # Docker Hub image that `container-job` executes in
+    container: node:10.18-jessie
 
-#     # Service containers to run with `container-job`
-#     services:
-#       # Label used to access the service container
-#       postgres:
-#         # Docker Hub image
-#         image: postgres
-#         # Provide the password for postgres
-#         env:
-#           POSTGRES_PASSWORD: postgres
-#         # Set health checks to wait until postgres has started
-#         options: >-
-#           --health-cmd pg_isready
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
-#         ports:
-#           # Maps tcp port 5432 on service container to the host
-#           - 5432:5432
-#   updatedb:
-#     runs-on: ubuntu-latest
+    # Service containers to run with `container-job`
+    services:
+      # label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:latest
+        # service environment variables
+        # `POSTGRES_HOST` is `postgres`
+        env:
+          # optional (defaults to `postgres`)
+          POSTGRES_DB: databruce
+          # required
+          POSTGRES_PASSWORD: password
+          # optional (defaults to `5432`)
+          POSTGRES_PORT: 5432
+          # optional (defaults to `postgres`)
+          POSTGRES_USER: postgres
+        ports:
+          # maps tcp port 5432 on service container to the host
+          - 5432:5432
+        # set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+  
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
 
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v4
-#       - name: Set up Python 3.x
-#         uses: actions/setup-python@v4
-#         with:
-#           python-version: 3.12
-#       - name: Install dependencies
-#         run: |
-#           python -m pip install --upgrade pip
-#           python -m pip install -r requirements.txt
-#       - name: run update
-#         run: |
-#           python ./databruce/insert_data.py
-#           # somehow set database url to arg? heroku vs local?
-#           # should set it to heroku and updates go there immediately, can pull locally later using backup
-#           # also create db dump file as daily backup, can restore local from there.
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+    
+      - name: Heroku login credentials
+        run: |
+            cat > ~/.netrc <<EOF
+              machine api.heroku.com
+                login $HEROKU_EMAIL
+                password $HEROKU_API_KEY
+              machine git.heroku.com
+                login $HEROKU_EMAIL
+                password $HEROKU_API_KEY
+            EOF
+        env:
+            HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+            HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+      
+      - name: pull heroku db
+        run: |
+          heroku pg:backups:capture --app ${{ secrets.HEROKU_APP_NAME }}
+          heroku pg:backups:download --app ${{ secrets.HEROKU_APP_NAME }}
+      
+      - name: load heroku dump
+        run: |
+          pg_restore --verbose --clean --no-acl --no-owner -h postgres -U postgres -d databruce latest.dump
+        env:
+          PGPASSWORD: password
