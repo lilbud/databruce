@@ -81,11 +81,6 @@ jobs:
           PGPASSWORD: password
           HEROKU_DB_URL: ${{ secrets.HEROKU_DB_URL }}
       
-      - name: test query
-        run: psql -h postgres -U postgres -d databruce -c 'SELECT brucebase_url FROM events LIMIT 1'
-        env:
-          PGPASSWORD: password
-      
       - name: get updates
         run: python ./databruce/insert_data.py
         env:

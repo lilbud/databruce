@@ -4,3 +4,4 @@ httpx
 ftfy
 titlecase
 python-dotenv
+internetarchive
