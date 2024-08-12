@@ -77,6 +77,17 @@ jobs:
         run: |
           heroku pg:backups:capture --app ${{ secrets.HEROKU_APP_NAME }}
           heroku pg:backups:download --app ${{ secrets.HEROKU_APP_NAME }}
+
+      - name: Upload db_dump
+        uses: actions/upload-artifact@v4
+        with:
+            name: heroku_backup
+            path: latest.dump
+
+      - name: Upload db_dump
+        uses: actions/download-artifact@v4
+        with:
+            name: heroku_backup
       
       - name: load heroku dump
         run: |
