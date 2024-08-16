@@ -45,5 +45,5 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                     ORDER BY event_id, id ASC
                 ) t
                 WHERE "setlists"."song_num" = t.id AND
-                    "setlists"."event_id" = t.event_id""",
+                    "setlists"."event_id" = t.event_id AND "setlists".position IS NULL""",
         )

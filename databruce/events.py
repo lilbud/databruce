@@ -74,6 +74,7 @@ async def get_events(pool: AsyncConnectionPool) -> None:
         "/recording:1986-02-00-shorefire-studios-long-branch-nj-2",
         "/recording:1987-02-00-shakedown-studios-new-york-city-ny-2",
     ]
+
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         db_events = await get_events_from_db(cur)
 
@@ -117,5 +118,16 @@ async def get_events(pool: AsyncConnectionPool) -> None:
                     )
                 except (psycopg.OperationalError, psycopg.IntegrityError) as e:
                     print("Could not complete operation:", e)
+                except psycopg.errors.DatetimeFieldOverflow:
+                    event_date = event_date.replace("-00", "-01")
+
+                    await cur.execute(
+                        """INSERT INTO "events"
+                            (event_id, event_date, brucebase_url)
+                            VALUES (%(id)s, %(date)s, %(url)s) ON CONFLICT
+                            (event_id, event_date, brucebase_url)
+                            DO NOTHING RETURNING *""",
+                        {"id": event_id, "date": event_date, "url": event_url},
+                    )
         else:
             print("No new events to add")

@@ -1,22 +1,17 @@
+import asyncio
 import json
 import os
 from pathlib import Path
 
 import psycopg
 from dotenv import load_dotenv
-from internetarchive import search_items
+from internetarchive import get_item, search_items
 from psycopg.rows import dict_row
-from psycopg_pool import AsyncConnectionPool
 
 load_dotenv()
 
 with Path.open(Path(Path(__file__).parent, "scripts", "uploaded.json")) as file:
     links = dict(json.load(file))
-
-
-async def get_list_from_archive() -> None:
-    """b,."""
-    return [i["identifier"] for i in search_items("collection:radionowhere")]
 
 
 async def load_db() -> psycopg.Connection:
@@ -27,14 +22,17 @@ async def load_db() -> psycopg.Connection:
     )
 
 
-async def get_recent_archives(pool: AsyncConnectionPool) -> None:
-    """."""
-    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-        for event, link in links.items():
-            print(event)
-            print(link)
-            cur.execute(
-                """INSERT INTO "archive_links" (event_id, archive_url)
-                    VALUES (%s, %s)""",
-                (event, link),
+async def get_list_from_archive() -> None:
+    """b,."""
+    with await load_db() as conn:
+        for i in search_items("collection:radionowhere"):
+            event_id = get_item(i["identifier"]).metadata["databruce_id"]
+            print(event_id)
+
+            conn.execute(
+                """INSERT INTO archive_links (event_id, archive_url) VALUES (%s, %s)""",
+                (event_id, i["identifier"]),
             )
+
+
+asyncio.run(get_list_from_archive())
