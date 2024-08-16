@@ -35,4 +35,23 @@ async def get_list_from_archive() -> None:
             )
 
 
-asyncio.run(get_list_from_archive())
+async def get_json_list() -> None:
+    """."""
+    with await load_db() as conn:
+        for event, identifier in links.items():
+            if isinstance(identifier, list):
+                for i in identifier:
+                    conn.execute(
+                        """INSERT INTO archive_links (event_id, archive_url)
+                            VALUES (%s, %s)""",
+                        (event, i),
+                    )
+            else:
+                conn.execute(
+                    """INSERT INTO archive_links (event_id, archive_url)
+                        VALUES (%s, %s)""",
+                    (event, identifier),
+                )
+
+
+asyncio.run(get_json_list())
