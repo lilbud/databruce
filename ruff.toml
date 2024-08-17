@@ -10,4 +10,5 @@ ignore = [
     "ANN101", # missing-type-self
     "RUF001", # ambiguous-unicode-character-string
     "N813", # imports not as camelcase
+    # "E501", # line too long
 ]

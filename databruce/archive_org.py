@@ -44,13 +44,13 @@ async def get_json_list() -> None:
                     conn.execute(
                         """INSERT INTO archive_links (event_id, archive_url)
                             VALUES (%s, %s)""",
-                        (event, i),
+                        (event, f"https://archive.org/details/{i}"),
                     )
             else:
                 conn.execute(
                     """INSERT INTO archive_links (event_id, archive_url)
                         VALUES (%s, %s)""",
-                    (event, identifier),
+                    (event, f"https://archive.org/details/{identifier}"),
                 )
 
 

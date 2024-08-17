@@ -35,7 +35,7 @@ async def get_event_id(event_date: str, cur: psycopg.AsyncCursor) -> str:
 
     max_date = await res.fetchone()
 
-    if max_date["id"] > 1:
+    if max_date["id"] >= 1:
         return f"{event_id}-{str(int(max_date["id"])+1).zfill(2)}"
 
     return f"{event_id}-01"
@@ -106,28 +106,28 @@ async def get_events(pool: AsyncConnectionPool) -> None:
             for event_url in links:
                 event_date = await html_parser.get_event_date(event_url)
                 event_id = await get_event_id(event_date, cur)
+                event_note = ""
+
+                if "-00" in event_date:
+                    event_note = "Placeholder date, actual date unknown."
 
                 try:
-                    await cur.execute(
-                        """INSERT INTO "events"
-                            (event_id, event_date, brucebase_url)
-                            VALUES (%(id)s, %(date)s, %(url)s) ON CONFLICT
-                            (event_id, event_date, brucebase_url)
-                            DO NOTHING RETURNING *""",
-                        {"id": event_id, "date": event_date, "url": event_url},
-                    )
-                except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-                    print("Could not complete operation:", e)
-                except psycopg.errors.DatetimeFieldOverflow:
                     event_date = event_date.replace("-00", "-01")
 
                     await cur.execute(
                         """INSERT INTO "events"
-                            (event_id, event_date, brucebase_url)
-                            VALUES (%(id)s, %(date)s, %(url)s) ON CONFLICT
+                            (event_id, event_date, brucebase_url, event_note)
+                            VALUES (%(id)s, %(date)s, %(url)s, %(note)s) ON CONFLICT
                             (event_id, event_date, brucebase_url)
                             DO NOTHING RETURNING *""",
-                        {"id": event_id, "date": event_date, "url": event_url},
+                        {
+                            "id": event_id,
+                            "date": event_date,
+                            "url": event_url,
+                            "note": event_note,
+                        },
                     )
+                except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+                    print("Could not complete operation:", e)
         else:
             print("No new events to add")
