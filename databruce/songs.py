@@ -66,7 +66,7 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                             s.song_id,
                             SUM(
                                 CASE
-                                    WHEN s.set_name = ANY(ARRAY['Soundcheck', 'Recording', 'Rehearsal']) THEN 1
+                                    WHEN s.set_name = ANY(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview']) THEN 1
                                     ELSE 0
                                 END
                             ) AS count
@@ -79,14 +79,14 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                             MAX(s.event_id) AS last,
                             SUM(
                                 CASE
-                                    WHEN s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal']) THEN 1
+                                    WHEN s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview']) THEN 1
                                     ELSE 0
                                 END
                             ) AS public_count,
                             p.count AS private_count
                         FROM "setlists" s
                         LEFT JOIN "private_count" p ON p.song_id = s.song_id
-                        WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal'])
+                        WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])
                         GROUP BY s.song_id, p.count
                         ORDER BY s.song_id
                     ) t

@@ -116,7 +116,7 @@ async def get_events(pool: AsyncConnectionPool) -> None:
 
                     await cur.execute(
                         """INSERT INTO "events"
-                            (event_id, event_date, brucebase_url, event_note)
+                            (event_id, event_date, brucebase_url, event_date_note)
                             VALUES (%(id)s, %(date)s, %(url)s, %(note)s) ON CONFLICT
                             (event_id, event_date, brucebase_url)
                             DO NOTHING RETURNING *""",
