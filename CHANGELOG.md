@@ -8,3 +8,4 @@
 - 2024-08-22 - fix `songs_after_release`. It was showing far too high of a number for the number of times a song was played *after* its first studio release. Like Price You Pay showing only 77 total plays and 120 after release. Simply had to put a "distinct" in the count
 - 2024-09-11 - fix `nugs_releases`. Originally this table had a column pointing to `live.brucespringsteen.net`. However, as of today, they switched over fully to `nugs.net`. I had to update the URLs to match correctly
 - 2024-09-15 - fix incorrect artist associated with Gloria. Mistakenly set to Roy Orbison when it should've been set to Leon Rene.
+- 2024-09-15 - fixed setlist note ordering. It wasn't sorting them properly by int but rather by text. Tried to fix the numbers being out of order but this is apparently impossible.
