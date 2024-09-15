@@ -91,8 +91,6 @@ async def main(pool: AsyncConnectionPool) -> None:
         await update_get_new(pool)
         await update_existing(pool)
         await update_stats(pool)
-        # await get_events(pool)
-        # await get_covers(pool)
 
 
 if __name__ == "__main__":

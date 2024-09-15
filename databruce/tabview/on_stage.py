@@ -58,20 +58,34 @@ async def get_onstage(
                 for m in link.ul.find_all("li"):
                     current = {
                         "event_id": event_id["id"],
-                        "relation_id": await get_relation_id(m.a["href"]),
-                        "band_id": await get_relation_id(link.a["href"]),
+                        "relation_id": "",
+                        "band_id": "",
                         "note": await get_relation_note(link),
                     }
+
+                    # fix for when there is no url associated with a link
+                    try:
+                        current["relation_id"] = await get_relation_id(m.a["href"])
+                        current["band_id"] = await get_relation_id(link.a["href"])
+                    except TypeError:
+                        current["relation_id"] = m.text.strip()
+                        current["band_id"] = link.text.strip()
 
                     if current not in results["onstage"]:
                         results["onstage"].append(current)
             except AttributeError:
                 current = {
                     "event_id": event_id["id"],
-                    "relation_id": await get_relation_id(link.a["href"]),
+                    "relation_id": None,
                     "band_id": None,
                     "note": await get_relation_note(link),
                 }
+
+                # fix for when there is no url associated with a link
+                try:
+                    current["relation_id"] = await get_relation_id(link.a["href"])
+                except TypeError:
+                    current["relation_id"] = link.text.strip()
 
                 if current not in results["onstage"]:
                     results["onstage"].append(current)
