@@ -41,9 +41,21 @@ fix = {
     "/nogig:1995-11-22-stone-pony-asbury-park-nj": "/nogig:1995-11-22b-stone-pony-asbury-park-nj",
 }
 
+
 with load_db() as conn:
-    for old_url, new_url in fix.items():
-        conn.execute(
-            """UPDATE events SET brucebase_url = %(new_url)s WHERE brucebase_url = %(old_url)s RETURNING *""",
-            {"old_url": old_url, "new_url": new_url},
-        )
+    events = conn.execute(
+        """SELECT event_id FROM events e WHERE event_id NOT IN
+            (SELECT event_id FROM event_details) ORDER BY event_id""",
+    ).fetchall()
+
+    # "band",
+    # "event_certainty", - confirmed
+    # "event_id",
+    # "event_title",
+    # "event_type", - concert
+    # "publicity",
+    # "setlist_certainty",
+    # "setlist_note",
+    # "tour"
+
+    band = conn.execute("""SELECT band_i""")

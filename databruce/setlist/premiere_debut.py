@@ -17,7 +17,7 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
                             *
                     FROM "premiere_debut"
                 ) t
-                WHERE "setlists".setlist_song_id = ANY(t.debuts);
+                WHERE "setlists".id = ANY(t.debuts);
 
                 UPDATE "setlists"
                 SET
@@ -27,7 +27,7 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
                             *
                     FROM "premiere_debut"
                 ) t
-                WHERE "setlists".setlist_song_id = t.premiere;
+                WHERE "setlists".id = t.premiere;
                 """,
             )
 

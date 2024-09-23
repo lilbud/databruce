@@ -92,6 +92,10 @@ async def main(pool: AsyncConnectionPool) -> None:
         await update_existing(pool)
         await update_stats(pool)
 
+        # for when a manual setlist grab is needed
+        # async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        #     await scrape_event_page("", cur, conn)
+
 
 if __name__ == "__main__":
     asyncio.run(main(db.pool), loop_factory=asyncio.SelectorEventLoop)

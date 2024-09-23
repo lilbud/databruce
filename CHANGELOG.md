@@ -9,3 +9,4 @@
 - 2024-09-11 - fix `nugs_releases`. Originally this table had a column pointing to `live.brucespringsteen.net`. However, as of today, they switched over fully to `nugs.net`. I had to update the URLs to match correctly
 - 2024-09-15 - fix incorrect artist associated with Gloria. Mistakenly set to Roy Orbison when it should've been set to Leon Rene.
 - 2024-09-15 - completely by accident managed to fix the setlist note numbering. Had to put a check in to make sure the note wasn't empty OR null, not just one or the either.
+- 2024-09-23 - added venue full text search column.

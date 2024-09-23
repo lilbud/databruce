@@ -16,3 +16,4 @@ __pycache__
 databruce/database/_schema/psql load command.txt
 databruce/database/_schema/out.tar
 *.tar
+databruce/test.py
