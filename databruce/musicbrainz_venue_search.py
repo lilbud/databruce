@@ -4,9 +4,9 @@ import musicbrainzngs
 from database import db
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
+from thefuzz import fuzz, process
 
 musicbrainzngs.set_useragent("Chrome", "37.0.2062.94", contact=None)
-from thefuzz import fuzz, process
 
 
 async def get_venues(pool: AsyncConnectionPool) -> None:
@@ -30,30 +30,31 @@ def compare_to_aliases(query: str, alias_list: list) -> bool:
     """Get the list of aliases for the given id, compare venue name to list."""
     score = process.extractOne(query, alias_list)
 
-    if score[1] == 100:
+    if score[1] == 100:  # noqa: PLR2004
         return True
 
     return False
 
 
-def check_name(db_name: str, result_name: str) -> bool:
-    if fuzz.ratio(db_name, result_name) == 100:
+def check_name(db_name: str, result_name: str) -> bool:  # noqa: D103
+    if fuzz.ratio(db_name, result_name) == 100:  # noqa: PLR2004
         return True
 
     return False
 
 
-def check_area(city: str, area: dict) -> bool:
+def check_area(city: str, area: dict) -> bool:  # noqa: D103
     try:
-        if process.extractOne(city, [area["name"], area["sort-name"]])[1] == 100:
+        if process.extractOne(city, [area["name"], area["sort-name"]])[1] == 100:  # noqa: PLR2004
             return True
 
-        return False
     except KeyError:
         return False
+    else:
+        return False
 
 
-def get_aliases_by_id(mbid: str) -> str:
+def get_aliases_by_id(mbid: str) -> str:  # noqa: D103
     result = musicbrainzngs.get_place_by_id(mbid, includes=["aliases"])
 
     try:
@@ -64,7 +65,7 @@ def get_aliases_by_id(mbid: str) -> str:
         return ""
 
 
-async def mb_place_search(query: str, name: str, city: str, state: str) -> str:
+async def mb_place_search(query: str, name: str, city: str) -> str:  # noqa: D103
     result = musicbrainzngs.search_places(query, area=city)
 
     for r in result["place-list"]:
@@ -82,7 +83,7 @@ async def mb_place_search(query: str, name: str, city: str, state: str) -> str:
     return None
 
 
-async def main(pool: AsyncConnectionPool) -> None:
+async def main(pool: AsyncConnectionPool) -> None:  # noqa: D103
     async with pool as pool:
         venues = await get_venues(pool)
 
@@ -102,14 +103,14 @@ async def main(pool: AsyncConnectionPool) -> None:
                 if result:
                     print(venue["name"], venue["city"], result)
                     await cur.execute(
-                        """UPDATE venues SET mb_id = %s, updated_at=now() WHERE id = %s""",
+                        """UPDATE venues SET mb_id = %s WHERE id = %s""",
                         (result, venue["id"]),
                     )
 
                 else:
                     print(venue["name"], venue["city"])
                     await cur.execute(
-                        """UPDATE venues SET mb_id = '', updated_at=now() WHERE id = %s""",
+                        """UPDATE venues SET mb_id = NULL WHERE id = %s""",
                         (venue["id"],),
                     )
 
@@ -118,7 +119,7 @@ async def main(pool: AsyncConnectionPool) -> None:
             await asyncio.sleep(0.5)
 
 
-async def venue_aliases(pool: AsyncConnectionPool) -> None:
+async def venue_aliases(pool: AsyncConnectionPool) -> None:  # noqa: D103
     async with pool as pool:
         venues = await get_venues(pool)
 
@@ -129,7 +130,7 @@ async def venue_aliases(pool: AsyncConnectionPool) -> None:
                 if aliases != "":
                     print(aliases)
                     await cur.execute(
-                        """UPDATE venues SET aliases = %s, updated_at=now() WHERE id = %s""",
+                        """UPDATE venues SET aliases = %s WHERE id = %s""",
                         (aliases, venue["id"]),
                     )
 
@@ -138,24 +139,3 @@ async def venue_aliases(pool: AsyncConnectionPool) -> None:
 
 if __name__ == "__main__":
     asyncio.run(venue_aliases(db.pool), loop_factory=asyncio.SelectorEventLoop)
-
-
-# print(json.dumps(result, indent=2))
-
-query = "Academy Of Music	Philadelphia"
-venue = "Academy Of Music"
-city = "Philadelphia"
-state = "PA"
-
-# result = asyncio.run(mb_place_search(query, venue, city, state))
-
-# result = musicbrainzngs.search_places(query, area=city)
-
-
-# if result["place-list"][0]["ext:score"] == "100":
-#     print(result["place-list"][0])
-
-# print(result)
-
-
-# print(get_aliases_by_id("2b3e65a3-c269-461f-928c-c9f0cb9a7bbc"))

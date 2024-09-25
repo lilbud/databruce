@@ -11,3 +11,4 @@
 - 2024-09-15 - completely by accident managed to fix the setlist note numbering. Had to put a check in to make sure the note wasn't empty OR null, not just one or the either.
 - 2024-09-23 - added venue full text search column.
 - 2024-09-24 - added aliases and musicbrainz ids to 745/2101 venues.
+- 2024-09-24 - added `updated_at` and `created_at` timestamps to every table. Something that probably should've been there from the beginning, but I'm figuring this all out as I go along. Took a while to sort out the triggers but now they'll fire on any column update which is nice.
