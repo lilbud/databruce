@@ -12,3 +12,4 @@
 - 2024-09-23 - added venue full text search column.
 - 2024-09-24 - added aliases and musicbrainz ids to 745/2101 venues.
 - 2024-09-24 - added `updated_at` and `created_at` timestamps to every table. Something that probably should've been there from the beginning, but I'm figuring this all out as I go along. Took a while to sort out the triggers but now they'll fire on any column update which is nice.
+- 2024-10-01 - modified the setlist notes and the stat counting. Now only counts shows that are marked as part of a tour. Many shows are either "interview" or "no tour", and shouldn't count when tallying show gaps/bustouts/debuts. Likely WIP for now but it should be good.

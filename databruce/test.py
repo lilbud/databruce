@@ -18,44 +18,30 @@ load_dotenv()
 # print(location.raw)
 
 fix = {
-    "/gig:1967-09-00-cafe-wha-new-york-city-ny": "/gig:1967-09-00b-cafe-wha-new-york-city-ny",
-    "/gig:1968-05-00-left-foot-freehold-nj": "/gig:1968-05-00b-left-foot-freehold-nj",
-    "/gig:1968-06-22-off-broad-street-coffee-house-red-bank-nj-early": "/gig:1968-06-22a-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-06-22-off-broad-street-coffee-house-red-bank-nj-late": "/gig:1968-06-22b-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-07-17-off-broad-street-coffee-house-red-bank-nj-early": "/gig:1968-07-17a-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-07-17-off-broad-street-coffee-house-red-bank-nj-late": "/gig:1968-07-17b-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-08-09-off-broad-street-coffee-house-red-bank-nj-early": "/gig:1968-08-09a-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-08-09-off-broad-street-coffee-house-red-bank-nj-late": "/gig:1968-08-09b-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-08-16-off-broad-street-coffee-house-red-bank-nj-early": "/gig:1968-08-16a-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-08-16-off-broad-street-coffee-house-red-bank-nj-late": "/gig:1968-08-16b-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-09-13-off-broad-street-coffee-house-red-bank-nj-early": "/gig:1968-09-13a-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-09-13-off-broad-street-coffee-house-red-bank-nj-late": "/gig:1968-09-13b-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-09-28-off-broad-street-coffee-house-red-bank-nj-early": "/gig:1968-09-28a-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-09-28-off-broad-street-coffee-house-red-bank-nj-late": "/gig:1968-09-28b-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-11-00-off-broad-street-coffee-house-red-bank-nj": "/gig:1968-11-00-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-12-20-off-broad-street-coffee-house-red-bank-nj-early": "/gig:1968-12-20a-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1968-12-20-off-broad-street-coffee-house-red-bank-nj-late": "/gig:1968-12-20b-off-broad-street-coffee-house-red-bank-nj",
-    "/gig:1969-05-28-pandemonium-wanamassa-nj-early": "/gig:1969-05-28a-pandemonium-wanamassa-nj",
-    "/gig:1969-05-28-pandemonium-wanamassa-nj-late": "/gig:1969-05-28b-pandemonium-wanamassa-nj",
-    "/gig:1969-05-28-pandemonium-wanamassa-nj-third": "/gig:1969-05-28c-pandemonium-wanamassa-nj",
-    "/nogig:1995-11-22-stone-pony-asbury-park-nj": "/nogig:1995-11-22b-stone-pony-asbury-park-nj",
+    "bruce-springsteen": "Lead vocal, electric and acoustic guitars, harmonica",
+    "roy-bittan": "Piano, keyboards",
+    "nils-lofgren": "Electric and acoustic guitars, backing vocal",
+    "garry-tallent": "Bass",
+    "steven-van-zandt": "Electric and acoustic guitars, backing vocal",
+    "max-weinberg": "Drums",
+    "jake-clemons": "Tenor saxophone, percussion, backing vocal",
+    "charlie-giordano": "Organ, keyboards",
+    "soozie-tyrell": "Violin, acoustic guitar, percussion",
+    "anthony-almonte": "Percussion, backing vocal",
+    "ada-dyer": "Backing vocal",
+    "curtis-king": "Backing vocal",
+    "lisa-lowell": "Backing vocal",
+    "michelle-moore": "Backing vocal",
+    "barry-danielian": "Trumpet",
+    "ed-manion": "Baritone and tenor saxophone",
+    "ozzie-melendez": "Trombone",
+    "curt-ramm": "Trumpet",
 }
 
 
 with load_db() as conn:
-    events = conn.execute(
-        """SELECT event_id FROM events e WHERE event_id NOT IN
-            (SELECT event_id FROM event_details) ORDER BY event_id""",
-    ).fetchall()
-
-    # "band",
-    # "event_certainty", - confirmed
-    # "event_id",
-    # "event_title",
-    # "event_type", - concert
-    # "publicity",
-    # "setlist_certainty",
-    # "setlist_note",
-    # "tour"
-
-    band = conn.execute("""SELECT band_i""")
+    for member, inst in fix.items():
+        conn.execute(
+            """UPDATE relations SET instruments=%s WHERE brucebase_url=%s""",
+            (inst, member),
+        )
