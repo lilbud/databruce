@@ -14,6 +14,7 @@ sys.path.append(str(Path(__file__).parent))
 
 
 from cities import update_cities
+from continents import update_continents
 from countries import update_countries
 from states import update_states
 
@@ -25,3 +26,4 @@ async def update_locations(pool: AsyncConnectionPool) -> None:
         await update_cities(cur)
         await update_states(cur)
         await update_countries(cur)
+        await update_continents(cur)

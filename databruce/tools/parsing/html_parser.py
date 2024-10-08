@@ -39,7 +39,7 @@ async def get_page_title(soup: bs4) -> str:
 
 async def get_venue_url(soup: bs4) -> str:
     """Return venue url from given page."""
-    return soup.find("a", href=re.compile("/venue:"))["href"]
+    return soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", "")
 
 
 async def get_show_descriptor_from_title(title: str) -> str:

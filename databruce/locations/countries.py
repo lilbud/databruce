@@ -15,7 +15,7 @@ async def get_country_from_abbrev(state_abbrev: str, cur: psycopg.AsyncCursor) -
             """SELECT
                 c.name
             FROM "states" s
-            LEFT JOIN "countries" c ON c.name = s.state_country
+            LEFT JOIN "countries" c ON c.id = s.country
             WHERE s.state_abbrev=%s;""",
             (state_abbrev,),
         )
@@ -30,19 +30,28 @@ async def get_country_from_abbrev(state_abbrev: str, cur: psycopg.AsyncCursor) -
 async def update_countries(cur: psycopg.AsyncCursor) -> None:
     """Update COUNTRIES table with all countries listed in VENUES table."""
     try:
-        res = await cur.execute(
-            """SELECT country, sum(num_events) AS count FROM "venues"
-                WHERE country IS NOT NULL
-                GROUP BY country ORDER BY country""",
+        await cur.execute(
+            """
+            UPDATE "countries"
+            SET
+                num_events = t.num,
+                first_played = t.first,
+                last_played = t.last
+            FROM (
+                SELECT
+                    v.country,
+                    SUM(v.num_events) AS num,
+                    MIN(v.first_played) AS first,
+                    MAX(v.last_played) AS last
+                FROM venues v
+                LEFT JOIN events e ON e.event_id = v.last_played
+                WHERE e.event_date <= NOW()
+                GROUP BY v.country
+                ORDER BY v.country
+            ) t
+            WHERE "countries".id = t.country
+            """,
         )
-
-        for row in await res.fetchall():
-            await cur.execute(
-                """INSERT INTO "countries" (name, num_events)
-                    VALUES (%(name)s, %(num_events)s) ON CONFLICT(name)
-                    DO UPDATE SET num_events=%(num_events)s""",
-                {"name": row["country"], "num_events": row["count"]},
-            )
 
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("Could not complete operation:", e)

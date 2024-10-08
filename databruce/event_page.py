@@ -85,15 +85,14 @@ async def tabview_handler(soup: bs4, event_url: str, cur: psycopg.Cursor) -> Non
 
 async def add_to_event_details(
     event_id: str,
-    bands: str,
     event_type: str,
     cur: psycopg.AsyncCursor,
 ) -> None:
     """Add event to event_details if not there."""
     await cur.execute(
-        """INSERT INTO "event_details" (event_id, band, event_type) VALUES (%s, %s, %s)
+        """INSERT INTO "event_details" (event_id, event_type) VALUES (%s, %s)
             ON CONFLICT(event_id) DO NOTHING""",
-        (event_id, bands, event_type),
+        (event_id, event_type),
     )
 
 
@@ -111,19 +110,18 @@ async def get_event_type(event_url: str) -> str:
     return event_types.get(re.findall("(/.*:)", event_url)[0], "")
 
 
-async def get_band(event_id: str, cur: psycopg.AsyncCursor) -> str:
-    """Get list of bands for given event."""
+async def get_venue_id(venue_url: str, cur: psycopg.AsyncCursor) -> int:
+    """Get ID by venue_url."""
     res = await cur.execute(
-        """SELECT string_agg(DISTINCT band_id, ', ') AS list
-            FROM "onstage" WHERE event_id=%s AND band_id is not NULL""",
-        (event_id,),
+        """SELECT id FROM venues WHERE brucebase_url = %s""",
+        (venue_url,),
     )
 
     try:
-        band = await res.fetchone()
-        return band["list"]
-    except IndexError:
-        return ""
+        venue = await res.fetchone()
+        return venue["id"]
+    except TypeError:
+        return None
 
 
 async def scrape_event_page(
@@ -139,8 +137,10 @@ async def scrape_event_page(
         soup = bs4(response.text, "lxml")
         page_title = await html_parser.get_page_title(soup)
         event_date = await html_parser.get_event_date(event_url)
+
         venue_url = await html_parser.get_venue_url(soup)
-        venue_id = re.sub("/venue:", "", venue_url)
+        venue_id = await get_venue_id(venue_url, cur)
+
         show = await html_parser.get_show_descriptor_from_title(page_title)
 
         if event_id == "":
@@ -150,16 +150,13 @@ async def scrape_event_page(
                 cur,
             )
 
-        # get list of bands from ON_STAGE
-        bands = await get_band(event_id, cur)
-
         event_type = await get_event_type(event_url)
 
         # add event to event_details
-        await add_to_event_details(event_id, bands, event_type, cur)
+        await add_to_event_details(event_id, event_type, cur)
 
         # check for unknown date or unknown in venue_id
-        await certainty(event_date, event_id, venue_id, cur)
+        await certainty(event_date, event_id, venue_url, cur)
 
         # handle page tags and insert into database
         await get_tags(soup, event_id, cur)

@@ -27,6 +27,7 @@ async def get_tour(tour_tag: str, cur: psycopg.AsyncCursor) -> str:
         (tour_tag,),
     )
 
+    print(tour_tag)
     tour = await res.fetchone()
     return tour["brucebase_id"]
 

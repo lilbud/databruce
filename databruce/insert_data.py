@@ -88,13 +88,10 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
 async def main(pool: AsyncConnectionPool) -> None:
     """Test."""
     async with pool as pool:
-        await update_get_new(pool)
+        # await update_get_new(pool)
         await update_existing(pool)
         await update_stats(pool)
-
-    # for when a manual setlist grab is needed
-    # async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-    #     await scrape_event_page("", cur, conn)  # noqa: ERA001
+        # await update_venue_count(pool)
 
 
 if __name__ == "__main__":

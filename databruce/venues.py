@@ -7,6 +7,7 @@ This module provides:
 - update_venue_info: Update EVENTS with venue info. Update VENUES with event count.
 """
 
+import asyncio
 import re
 
 import ftfy
@@ -19,6 +20,65 @@ from tools.parsing import html_parser
 from tools.scraping import scraper
 
 
+async def get_city_id(city_name: str, cur: psycopg.AsyncCursor) -> int:
+    """Get id based on city name."""
+    res = await cur.execute(
+        """SELECT id FROM cities WHERE name = %s""",
+        (city_name,),
+    )
+
+    try:
+        city = await res.fetchone()
+        return city["id"]
+    except TypeError:
+        return None
+
+
+async def get_state_id(state: str, cur: psycopg.AsyncCursor) -> int:
+    """Get id based on state."""
+    res = await cur.execute(
+        """SELECT id FROM states WHERE state_abbrev = %(state)s
+        OR name = %(state)s""",
+        {"state": state},
+    )
+
+    try:
+        state_abbrev = await res.fetchone()
+        return state_abbrev["id"]
+    except TypeError:
+        return None
+
+
+async def get_country_id(country_name: str, cur: psycopg.AsyncCursor) -> int:
+    """Get id based on country."""
+    res = await cur.execute(
+        """SELECT id FROM countries WHERE name = %s""",
+        (country_name,),
+    )
+
+    try:
+        country = await res.fetchone()
+        return country["id"]
+    except TypeError:
+        return None
+
+
+async def get_continent_by_country(country: int, cur: psycopg.AsyncCursor) -> int:
+    """Get ID of continent by country."""
+    res = await cur.execute(
+        """
+        SELECT continent FROM countries WHERE id = %s
+        """,
+        (country,),
+    )
+
+    try:
+        continent = await res.fetchone()
+        return continent["continent"]
+    except TypeError:
+        return None
+
+
 async def update_venue_count(pool: AsyncConnectionPool) -> None:
     """Update VENUES with number of events."""
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
@@ -26,13 +86,18 @@ async def update_venue_count(pool: AsyncConnectionPool) -> None:
             await cur.execute(
                 """UPDATE "venues"
                     SET
-                        num_events = t.num
+                        num_events = t.num,
+                        first_played = t.first_played,
+                        last_played = t.last_played
                     FROM (
                     SELECT
                         v.id,
-                        count(e.venue_id) AS num
+                        count(e.venue_id) AS num,
+                        MIN(e.event_id) AS first_played,
+                        MAX(e.event_id) AS last_played
                     FROM "venues" v
-                    LEFT JOIN "events" e ON e.venue_id = v.brucebase_url
+                    LEFT JOIN "events" e ON e.venue_id = v.id
+                    WHERE e.event_date <= NOW()
                     GROUP BY v.id
                     ORDER BY v.id
                     ) t
@@ -68,11 +133,15 @@ async def venue_parser(
         "city": None,
         "state": None,
         "country": None,
+        "continent": None,
     }
 
     # fixes venue names that aren't correct
     fixed_name = await venue_name_fix(venue_name)
 
+    # some venue names have prefixes at the end like (The) or (Le).
+    # this is the easiest way I've found to grab that and bring it
+    # to the front and remove the parenthesis
     try:
         match = re.search(r"(\((.+)\))", fixed_name)
         prefix = re.escape(match[1])
@@ -86,26 +155,38 @@ async def venue_parser(
         matches = [ftfy.fix_text(m.strip()) for m in match.groups()]
 
         venue_dict["name"] = matches[0]
-        venue_dict["city"] = matches[1]
-        venue_dict["country"] = matches[-1]
+        venue_dict["city"] = await get_city_id(matches[1], cur)
+        venue_dict["country"] = await get_country_id(matches[-1], cur)
 
         # australia has states, apparently
         # and the venues can have 4 parts because of it
         if matches[-1] == "Australia":
+            # splits the match again to catch the AUS location format
+            # VENUE, CITY, STATE, AUS
             match_split = matches[0].split(", ")
 
             venue_dict["name"] = match_split[0]
-            venue_dict["city"] = match_split[1]
-            venue_dict["state"] = matches[-2]
-            venue_dict["country"] = matches[-1]
+            venue_dict["city"] = await get_city_id(match_split[1], cur)
+            venue_dict["state"] = await get_state_id(matches[-2], cur)
 
-        # state abbreviations are two chars long
+        # US state abbreviations are two chars long
         if re.search(r"^\w{2}$", matches[-1]):
-            venue_dict["state"] = matches[-1].upper()
-            venue_dict["country"] = await get_country_from_abbrev(
+            venue_dict["state"] = await get_state_id(matches[-1].upper(), cur)
+
+            # uses the states table and grabs the proper country name
+            country = await get_country_from_abbrev(
                 matches[-1],
                 cur,
             )
+
+            # finds the proper country id given the country
+            venue_dict["country"] = await get_country_id(country, cur)
+
+        # getting continent based on country
+        venue_dict["continent"] = await get_continent_by_country(
+            venue_dict["country"],
+            cur,
+        )
 
     return venue_dict
 
@@ -126,11 +207,10 @@ async def get_venues(pool: AsyncConnectionPool) -> None:
             try:
                 await cur.execute(
                     """INSERT INTO "venues"
-                        (brucebase_url, name, city, state, country)
-                        VALUES (%(id)s,%(name)s,%(city)s,%(state)s,%(country)s)
-                        ON CONFLICT (brucebase_url) DO UPDATE SET name=%(name)s,
-                        city=%(city)s, state=%(state)s, country=%(country)s
-                        RETURNING *""",
+                        (brucebase_url, name, city, state, country, continent)
+                        VALUES (%(id)s, %(name)s, %(city)s, %(state)s, %(country)s,
+                            %(continent)s)
+                        ON CONFLICT (brucebase_url) DO NOTHING RETURNING *""",
                     venue,
                 )
             except (psycopg.OperationalError, psycopg.IntegrityError) as e:

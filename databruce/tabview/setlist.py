@@ -258,7 +258,7 @@ async def get_setlist(
 
     if len(setlist) == 0:
         await cur.execute(
-            """UPDATE "events_details" SET setlist_certainty='Unknown'
+            """UPDATE "event_details" SET setlist_certainty='Unknown'
                 WHERE event_id=%s""",
             (event_id,),
         )

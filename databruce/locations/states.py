@@ -11,30 +11,28 @@ import psycopg
 async def update_states(cur: psycopg.AsyncCursor) -> None:
     """Update STATES table with all states listed in VENUES table."""
     try:
-        res = await cur.execute(
-            """SELECT
-                    upper(v.state) AS state,
-                    c.id AS country,
-                    sum(v.num_events) AS count
-                FROM "venues" v
-                LEFT JOIN "countries" c ON c.name = v.country
-                WHERE v.state != '' AND length(v.state) = 2
-                GROUP BY v.state, c.id
-                ORDER BY v.state""",
+        await cur.execute(
+            """
+            UPDATE "states"
+            SET
+                num_events = t.num,
+                first_played = t.first,
+                last_played = t.last
+            FROM (
+                SELECT
+                    v.state,
+                    SUM(v.num_events) AS num,
+                    MIN(v.first_played) AS first,
+                    MAX(v.last_played) AS last
+                FROM venues v
+                LEFT JOIN events e ON e.event_id = v.last_played
+                WHERE e.event_date <= NOW()
+                GROUP BY v.state
+                ORDER BY v.state
+            ) t
+            WHERE "states".id = t.state
+            """,
         )
-
-        for row in await res.fetchall():
-            await cur.execute(
-                """INSERT INTO "states"
-                    (state_abbrev, state_country, num_events) VALUES
-                    (%(state)s, %(country)s, %(num_events)s) ON CONFLICT(state_abbrev)
-                    DO UPDATE SET num_events=%(num_events)s""",
-                {
-                    "state": row["state"],
-                    "country": row["country"],
-                    "num_events": row["count"],
-                },
-            )
 
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("Could not complete operation:", e)

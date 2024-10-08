@@ -50,6 +50,24 @@ async def get_events_from_db(cur: psycopg.AsyncCursor) -> list["str"]:
     return [row["brucebase_url"] for row in await res.fetchall()]
 
 
+async def event_num_fix(cur: psycopg.AsyncCursor) -> None:
+    """Update event_num after new events inserted."""
+    await cur.execute(
+        """
+        UPDATE "events"
+        SET
+            event_num=t.num
+        FROM (
+            SELECT
+                row_number() OVER (ORDER BY event_id) AS num,
+                event_id
+            FROM "events"
+        ) t
+        WHERE "events".event_id=t.event_id;
+        """,
+    )
+
+
 async def get_events(pool: AsyncConnectionPool) -> None:
     """Get events from Brucebase."""
     links = []
@@ -129,5 +147,7 @@ async def get_events(pool: AsyncConnectionPool) -> None:
                     )
                 except (psycopg.OperationalError, psycopg.IntegrityError) as e:
                     print("Could not complete operation:", e)
+
+            await event_num_fix(cur)
         else:
             print("No new events to add")

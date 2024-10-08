@@ -137,5 +137,34 @@ async def venue_aliases(pool: AsyncConnectionPool) -> None:  # noqa: D103
                 await conn.commit()
 
 
-if __name__ == "__main__":
-    asyncio.run(venue_aliases(db.pool), loop_factory=asyncio.SelectorEventLoop)
+with db.load_db() as conn:
+    res = conn.execute(
+        """SELECT
+            c.id,
+            c.name,
+            c.state
+        FROM cities c
+        LEFT JOIN states s ON s.state_abbrev = c.state
+        WHERE c.country = 'United States' AND c.mb_id IS NULL
+        GROUP BY c.id, c.name, c.state
+        ORDER BY c.name""",
+    ).fetchall()
+
+    for i in res:
+        print("---", f"{i["name"]}, {i['state']}")
+        result = musicbrainzngs.search_areas(
+            query=f"{i["name"]}, {i['state']}",
+        )
+
+        if len(result["area-list"]) > 0:
+            city = result["area-list"][0]["name"]
+            id = result["area-list"][0]["id"]
+
+            if city == i["name"]:
+                print(city, id)
+                conn.execute(
+                    """UPDATE cities SET mb_id = %s WHERE id = %s""",
+                    (id, i["id"]),
+                )
+
+                conn.commit()
