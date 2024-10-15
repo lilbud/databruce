@@ -16,7 +16,7 @@ async def update_bands(pool: AsyncConnectionPool) -> None:
                         MIN(o.event_id) AS first,
                         MAX(o.event_id) AS last
                     FROM "onstage" o
-                    WHERE o.band_id != ''
+                    WHERE o.band_id IS NOT NULL
                     GROUP BY o.band_id""",
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:

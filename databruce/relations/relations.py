@@ -16,7 +16,7 @@ async def update_relations(pool: AsyncConnectionPool) -> None:
                         MIN(o.event_id) AS first,
                         MAX(o.event_id) AS last
                     FROM "onstage" o
-                    WHERE o.relation_id != ''
+                    WHERE o.relation_id IS NOT NULL
                     GROUP BY o.relation_id""",
             )
 

@@ -23,13 +23,12 @@ with Path.open(json_path) as tags_json:
 async def get_tour(tour_tag: str, cur: psycopg.AsyncCursor) -> str:
     """Get the proper tour id for a given tag."""
     res = await cur.execute(
-        """SELECT brucebase_id FROM tours WHERE brucebase_tag=%s;""",
+        """SELECT id FROM tours WHERE brucebase_tag=%s;""",
         (tour_tag,),
     )
 
-    print(tour_tag)
     tour = await res.fetchone()
-    return tour["brucebase_id"]
+    return tour["id"]
 
 
 async def get_tags(

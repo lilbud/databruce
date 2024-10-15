@@ -30,7 +30,7 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
                         AND e.tour IS NOT NULL
                         GROUP BY e.tour
                     ) t
-                    WHERE "tours"."brucebase_id" = t.tour""",
+                    WHERE "tours"."id" = t.tour""",
             )
 
             # rehearsals specific
@@ -50,10 +50,10 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
                             COUNT(DISTINCT(e.event_id)) AS event_count
                         FROM "event_details" e
                         LEFT JOIN "setlists" s USING(event_id)
-                        WHERE e.tour = 'tour_rehearsal'
+                        WHERE e.tour = '43'
                         GROUP BY e.tour
                     ) t
-                    WHERE "tours"."brucebase_id" = t.tour""",
+                    WHERE "tours"."id" = t.tour""",
             )
 
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:

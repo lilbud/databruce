@@ -6,27 +6,24 @@ import psycopg
 from bs4 import Tag
 
 
-async def get_relation_name(
-    relation_id: str,
-    conn: psycopg.Connection,
-) -> str | None:
-    """Return the relation_name from the database for the given relation_id."""
-    relation = conn.execute(
-        """SELECT relation_name AS name FROM "relations" WHERE relation_id=%s""",
-        (relation_id,),
-    ).fetchone()
-
-    try:
-        return relation["name"]
-    except IndexError:
-        return None
-
-
 async def get_relation_id(
     relation_url: str,
-) -> str:
+    cur: psycopg.AsyncCursor,
+) -> int:
     """Return the relation_id for the given relation_url."""
-    return re.sub("/relation:", "", relation_url)
+    url = re.sub("/relation:", "", relation_url)
+
+    res = await cur.execute(
+        """SELECT id FROM "relations" WHERE brucebase_url=%s""",
+        (url,),
+    )
+
+    relation = await res.fetchone()
+
+    try:
+        return relation["id"]
+    except IndexError:
+        return None
 
 
 async def get_relation_note(relation: Tag) -> str | None:
@@ -97,6 +94,7 @@ async def get_onstage(  # noqa: C901, PLR0912
                     results["onstage"].append(current)
 
     for item in results["onstage"]:
+        item["relation_id"] = await get_relation_id(item["relation_id"], cur)
         try:
             await cur.execute(
                 """INSERT INTO "onstage"

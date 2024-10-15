@@ -33,9 +33,33 @@ load_dotenv()
 
 
 # asyncio.run(main())
+venues = [
+    "television-centre-london-england",
+    "anfield-liverpool-england",
+    "david-geffen-theater-los-angeles-ca",
+    "museum-of-modern-art-new-york-city-ny",
+    "co-op-live-manchester-england",
+    "reale-arena-donostia-san-sebastian-spain",
+    "decathlon-arena-villeneuve-d-ascq-france",
+]
 
-from datetime import datetime
+with load_db() as conn:
+    events = conn.execute(
+        """SELECT brucebase_url AS id FROM events WHERE venue_id IS NULL""",
+    ).fetchall()
 
-example = "2024-10"
-parsed = datetime.strptime(example, "%Y-%m")
-print(parsed)
+    for event in events:
+        venue_url = re.sub(r"/.*:\d{4}-\d{2}-\d{2}-", "", event["id"])
+
+        venue = conn.execute(
+            """SELECT id FROM venues WHERE brucebase_url = %s""",
+            (venue_url,),
+        ).fetchone()
+
+        if venue:
+            venue_id = venue["id"]
+
+            conn.execute(
+                """UPDATE events SET venue_id = %s WHERE brucebase_url = %s""",
+                (venue_id, event["id"]),
+            )
