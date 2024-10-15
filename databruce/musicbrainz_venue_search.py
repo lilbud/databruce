@@ -1,5 +1,8 @@
 import asyncio
+import re
+import time
 
+import ftfy
 import musicbrainzngs
 from database import db
 from psycopg.rows import dict_row
@@ -37,7 +40,11 @@ def compare_to_aliases(query: str, alias_list: list) -> bool:
 
 
 def check_name(db_name: str, result_name: str) -> bool:  # noqa: D103
-    if fuzz.ratio(db_name, result_name) == 100:  # noqa: PLR2004
+    ratio = fuzz.ratio(db_name.lower(), result_name.lower())
+
+    print(ratio)
+
+    if ratio >= 95:  # noqa: PLR2004
         return True
 
     return False
@@ -138,33 +145,43 @@ async def venue_aliases(pool: AsyncConnectionPool) -> None:  # noqa: D103
 
 
 with db.load_db() as conn:
-    res = conn.execute(
-        """SELECT
-            c.id,
-            c.name,
-            c.state
-        FROM cities c
-        LEFT JOIN states s ON s.state_abbrev = c.state
-        WHERE c.country = 'United States' AND c.mb_id IS NULL
-        GROUP BY c.id, c.name, c.state
-        ORDER BY c.name""",
+    cur = conn.cursor()
+
+    res = cur.execute(
+        """
+        SELECT
+           s.id,
+           s.song_name,
+           s.mbid
+        FROM songs s
+        WHERE s.mbid IS NOT NULL
+        ORDER BY s.song_name
+        """,
     ).fetchall()
 
-    for i in res:
-        print("---", f"{i["name"]}, {i['state']}")
-        result = musicbrainzngs.search_areas(
-            query=f"{i["name"]}, {i['state']}",
-        )
+    songs = []
 
-        if len(result["area-list"]) > 0:
-            city = result["area-list"][0]["name"]
-            id = result["area-list"][0]["id"]
+    for r in res:
+        db_id = r["id"]
+        db_name = r["song_name"]
+        mbid = r["mbid"]
 
-            if city == i["name"]:
-                print(city, id)
-                conn.execute(
-                    """UPDATE cities SET mb_id = %s WHERE id = %s""",
-                    (id, i["id"]),
-                )
+        print(db_name, mbid)
 
-                conn.commit()
+        result = musicbrainzngs.get_work_by_id(id=mbid, includes=["artist-rels"])[
+            "work"
+        ]
+
+        if result:
+            new_name = ftfy.fix_text(result["title"])
+
+            print(db_name, " / ", new_name)
+
+            cur.execute(
+                """UPDATE songs SET song_name = %s WHERE id=%s""",
+                (new_name, db_id),
+            )
+
+        print()
+
+        time.sleep(0.5)

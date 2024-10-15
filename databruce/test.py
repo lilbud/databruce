@@ -26,10 +26,16 @@ load_dotenv()
 # print(location.raw)
 
 
-async def main():
-    test = "Burnin’ Train"
+# async def main():
+#     test = "Burnin’ Train"
 
-    print(ftfy.fix_text(test))
+#     print(ftfy.fix_text(test))
 
 
-asyncio.run(main())
+# asyncio.run(main())
+
+from datetime import datetime
+
+example = "2024-10"
+parsed = datetime.strptime(example, "%Y-%m")
+print(parsed)

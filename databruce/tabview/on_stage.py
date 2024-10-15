@@ -37,7 +37,13 @@ async def get_relation_note(relation: Tag) -> str | None:
         return None
 
 
-async def get_onstage(
+async def generate_slug(name: str) -> str:
+    """When brucebase_url is missing, make a fake url."""
+    slug = re.sub(r"\s+\(.*\)$", "", name)
+    return slug.replace(" ", "-").lower()
+
+
+async def get_onstage(  # noqa: C901, PLR0912
     tab_contents: Tag,
     event_url: str,
     cur: psycopg.AsyncCursor,
@@ -68,7 +74,7 @@ async def get_onstage(
                         current["relation_id"] = await get_relation_id(m.a["href"])
                         current["band_id"] = await get_relation_id(link.a["href"])
                     except TypeError:
-                        current["relation_id"] = m.text.strip()
+                        current["relation_id"] = await generate_slug(m.text.strip())
                         current["band_id"] = link.text.strip()
 
                     if current not in results["onstage"]:
@@ -85,7 +91,7 @@ async def get_onstage(
                 try:
                     current["relation_id"] = await get_relation_id(link.a["href"])
                 except TypeError:
-                    current["relation_id"] = link.text.strip()
+                    current["relation_id"] = await generate_slug(link.text.strip())
 
                 if current not in results["onstage"]:
                     results["onstage"].append(current)
