@@ -22,10 +22,10 @@ async def update_relations(pool: AsyncConnectionPool) -> None:
 
             for row in await res.fetchall():
                 await cur.execute(
-                    """INSERT INTO "relations" (brucebase_url, appearances,
+                    """INSERT INTO "relations" (id, appearances,
                     first_appearance, last_appearance) VALUES
                         (%(id)s, %(num_events)s, %(first)s, %(last)s)
-                    ON CONFLICT (brucebase_url) DO UPDATE SET
+                    ON CONFLICT (id) DO UPDATE SET
                     appearances=%(num_events)s, first_appearance=%(first)s,
                     last_appearance=%(last)s""",
                     {

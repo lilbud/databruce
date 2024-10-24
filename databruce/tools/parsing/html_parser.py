@@ -34,12 +34,18 @@ async def get_all_links(soup: bs4, pattern: str) -> list[dict[str, str]]:
 
 async def get_page_title(soup: bs4) -> str:
     """Return title from given page."""
-    return soup.find("div", id="page-title").text.strip()
+    try:
+        return soup.find("div", id="page-title").text.strip()
+    except AttributeError:
+        return "title"
 
 
 async def get_venue_url(soup: bs4) -> str:
     """Return venue url from given page."""
-    return soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", "")
+    try:
+        return soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", "")
+    except TypeError:
+        return "venue"
 
 
 async def get_show_descriptor_from_title(title: str) -> str:

@@ -74,13 +74,16 @@ async def tabview_handler(soup: bs4, event_url: str, cur: psycopg.Cursor) -> Non
     content = soup.find("div", {"class": "yui-content"})
     nav = soup.find("ul", {"class": "yui-nav"})
 
-    for index, tab in enumerate(nav.find_all("li")):
-        tab_content = content.find("div", {"id": f"wiki-tab-0-{index}"})
-        match tab.text.strip():
-            case "On Stage":
-                await on_stage.get_onstage(tab_content, event_url, cur)
-            case "Setlist":
-                await setlist.get_setlist(tab_content, event_url, cur)
+    try:
+        for index, tab in enumerate(nav.find_all("li")):
+            tab_content = content.find("div", {"id": f"wiki-tab-0-{index}"})
+            match tab.text.strip():
+                case "On Stage" | "In Studio":
+                    await on_stage.get_onstage(tab_content, event_url, cur)
+                case "Setlist":
+                    await setlist.get_setlist(tab_content, event_url, cur)
+    except AttributeError:
+        return
 
 
 async def add_to_event_details(
@@ -163,6 +166,7 @@ async def scrape_event_page(
 
         # handle the different tabs on each page
         await tabview_handler(soup, event_url, cur)
+        await conn.commit()
 
         try:
             await cur.execute(
