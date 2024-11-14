@@ -26,19 +26,20 @@ URL_MATCH_PATTERN = (
 
 async def get_event_id(event_date: str, cur: psycopg.AsyncCursor) -> str:
     """Get the number of event_ids for a date, then append 1 if exists already."""
-    event_id = re.sub("-", "", event_date)
-
     res = await cur.execute(
-        """SELECT count(event_id) AS id FROM "events" WHERE event_id LIKE %s""",
-        (f"{event_id}%",),
+        """SELECT max(event_id) AS id FROM "events" WHERE event_date = %s""",
+        (f"{event_date}%",),
     )
 
     max_date = await res.fetchone()
 
-    if max_date["id"] >= 1:
-        return f"{event_id}-{str(int(max_date["id"])+1).zfill(2)}"
-
-    return f"{event_id}-01"
+    try:
+        # get the last digit of the highest event id for a date
+        # then append 1 to it and return
+        last_num = str(int(max_date["id"][-1]) + 1).zfill(2)
+        return f"{event_date.replace("-", "")}-{last_num}"
+    except TypeError:
+        return f"{event_date.replace("-", "")}-01"
 
 
 async def get_events_from_db(cur: psycopg.AsyncCursor) -> list["str"]:
@@ -70,8 +71,6 @@ async def event_num_fix(cur: psycopg.AsyncCursor) -> None:
 
 async def get_events(pool: AsyncConnectionPool) -> None:
     """Get events from Brucebase."""
-    links = []
-
     event_cat = {
         "gig": "17778567",
         "interview": "18227972",
@@ -81,6 +80,10 @@ async def get_events(pool: AsyncConnectionPool) -> None:
         "rehearsal": "18433049",
     }
 
+    # weird events which redirect to an existing event url
+    # I probably could just check before inserting, but
+    # it would mean having to ping each page and on a massive
+    # update it would take too long.
     ignore = [
         "/gig:1999-07-18-caa-east-rutherford-nj-2",
         "/gig:2000-07-01-madison-square-garden-new-york-city-ny-2",
@@ -94,60 +97,42 @@ async def get_events(pool: AsyncConnectionPool) -> None:
     ]
 
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-        db_events = await get_events_from_db(cur)
+        event_urls = await get_events_from_db(cur)
 
-        async with httpx.AsyncClient() as client:
-            for category_id in event_cat.values():
-                response = await client.post(
-                    "http://brucebase.wikidot.com/ajax-module-connector.php",
-                    headers={
-                        "User-Agent": await scraper.get_random_user_agent(),
-                        "Cookie": "wikidot_token7=0",
-                    },
-                    data={
-                        "category_id": category_id,
-                        "moduleName": "list/WikiCategoriesPageListModule",
-                        "wikidot_token7": "0",
-                    },
-                )
+        for category_id in event_cat.values():
+            response = await scraper.post(category_id)
 
-                if response:
-                    soup = bs4(response.json()["body"], "lxml")
-                    urls = await html_parser.get_all_links(soup, URL_MATCH_PATTERN)
+            if response:
+                soup = bs4(response, "lxml")
+                urls = await html_parser.get_all_links(soup, URL_MATCH_PATTERN)
 
-                    for url in urls:
-                        if url["url"] not in db_events and url["url"] not in ignore:
-                            print(url["url"])
-                            links.append(url["url"])
+                for url in urls:
+                    if url["url"] not in ignore and url["url"] not in event_urls:
+                        event_url = url["url"]
+                        event_date = await html_parser.get_event_date(event_url)
+                        event_note = None
 
-        if len(links) > 0:
-            for event_url in links:
-                event_date = await html_parser.get_event_date(event_url)
-                event_id = await get_event_id(event_date, cur)
-                event_note = ""
+                        if "-00" in event_date:
+                            event_date = event_date.replace("-00", "-01")
+                            event_note = "Placeholder date, actual date unknown."
 
-                if "-00" in event_date:
-                    event_note = "Placeholder date, actual date unknown."
+                        event_id = await get_event_id(event_date, cur)
 
-                try:
-                    event_date = event_date.replace("-00", "-01")
+                        try:
+                            await cur.execute(
+                                """INSERT INTO "events" (event_id, event_date,
+                                        brucebase_url, event_date_note)
+                                    VALUES (%s, %s, %s, %s) ON CONFLICT
+                                    (event_id, event_date, brucebase_url) DO NOTHING
+                                    RETURNING *""",
+                                (event_id, event_date, event_url, event_note),
+                            )
+                        except (
+                            psycopg.OperationalError,
+                            psycopg.IntegrityError,
+                        ) as e:
+                            print("EVENTS: Could not complete operation:", e)
 
-                    await cur.execute(
-                        """INSERT INTO "events"
-                            (event_id, event_date, brucebase_url, event_date_note)
-                            VALUES (%(id)s, %(date)s, %(url)s, %(note)s) ON CONFLICT
-                            (event_id, event_date, brucebase_url)
-                            DO NOTHING RETURNING *""",
-                        {
-                            "id": event_id,
-                            "date": event_date,
-                            "url": event_url,
-                            "note": event_note,
-                        },
-                    )
-                except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-                    print("Could not complete operation:", e)
-
-            await event_num_fix(cur)
-        else:
-            print("No new events to add")
+        # fix event numbers after insert
+        await event_num_fix(cur)
+        print("Got Events")

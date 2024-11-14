@@ -13,11 +13,29 @@ import re
 import ftfy
 import psycopg
 from bs4 import BeautifulSoup as bs4
-from locations.countries import get_country_from_abbrev
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from tools.parsing import html_parser
 from tools.scraping import scraper
+
+
+async def get_country_from_abbrev(state_abbrev: str, cur: psycopg.AsyncCursor) -> str:
+    """Return the name of a country from the given state abbreviation."""
+    try:
+        res = await cur.execute(
+            """SELECT
+                c.name
+            FROM "states" s
+            LEFT JOIN "countries" c ON c.id = s.country
+            WHERE s.state_abbrev=%s;""",
+            (state_abbrev,),
+        )
+
+        name = await res.fetchone()
+
+        return name["name"]
+    except (KeyError, TypeError):
+        return ""
 
 
 async def get_city_id(city_name: str, cur: psycopg.AsyncCursor) -> int:
@@ -194,7 +212,6 @@ async def venue_parser(
 async def get_venues(pool: AsyncConnectionPool) -> None:
     """Get a list of venues from Brucebase, and inserts into the database."""
     response = await scraper.post("17778201")
-    venues = []
 
     if response:
         soup = bs4(response, "lxml")
@@ -214,4 +231,6 @@ async def get_venues(pool: AsyncConnectionPool) -> None:
                     venue,
                 )
             except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-                print("Could not complete operation:", e)
+                print("VENUES: Could not complete operation:", e)
+
+        print("Got Venues")

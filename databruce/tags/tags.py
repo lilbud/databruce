@@ -65,7 +65,7 @@ async def get_tags(
 
         try:
             await cur.execute(
-                """UPDATE "event_details" SET tour = %s, bootleg = %s,
+                """UPDATE "events" SET tour_id = %s, bootleg = %s,
                 official = %s WHERE event_id = %s""",
                 (
                     tags["tour"],

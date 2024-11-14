@@ -13,7 +13,7 @@ from covers import get_covers
 from database import db
 from event_page import scrape_event_page
 from events import get_events
-from locations.update_locations import update_locations
+from locations import update_locations
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from relations.bands import update_bands
@@ -61,6 +61,7 @@ async def update_get_new(pool: AsyncConnectionPool) -> None:
     await get_songs(pool)
     await get_venues(pool)
     await get_events(pool)
+    # await get_covers(pool)
 
 
 async def update_existing(pool: AsyncConnectionPool) -> None:
@@ -70,7 +71,6 @@ async def update_existing(pool: AsyncConnectionPool) -> None:
     await get_new_setlists(pool)
     await update_venue_count(pool)
     await update_song_info(pool)
-    await update_bands(pool)
     await update_relations(pool)
 
 
@@ -81,16 +81,21 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
     await opener_closer(pool)
     await song_opener_closer_count(pool)
 
-    # custom covers
-    await get_covers(pool)
-
 
 async def main(pool: AsyncConnectionPool) -> None:
     """Test."""
     async with pool as pool:
-        await update_get_new(pool)
-        await update_existing(pool)
-        await update_stats(pool)
+        # await update_get_new(pool)
+        # await update_existing(pool)
+        # await update_stats(pool)
+        await get_covers(pool)
+
+        # async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        #     await scrape_event_page(
+        #         "/gig:2024-11-06-scotiabank-arena-toronto-on",
+        #         cur,
+        #         conn,
+        #     )
 
 
 if __name__ == "__main__":

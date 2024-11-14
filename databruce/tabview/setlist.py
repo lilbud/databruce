@@ -205,11 +205,11 @@ async def setlist_check(
     """Check for incomplete setlists.
 
     Checks if the setlist tab of an event has a note regarding
-    the setlist being incomplete. Then updates EVENT_DETAILS with this info
+    the setlist being incomplete. Then updates events with this info
     """
     if tab_content.find("em", string=re.compile(".*incomplete.*", re.IGNORECASE)):
         await cur.execute(
-            """UPDATE "event_details" SET setlist_certainty=%s WHERE event_id=%s""",
+            """UPDATE "events" SET setlist_certainty=%s WHERE event_id=%s""",
             ("Incomplete", event_id),
         )
 
@@ -258,7 +258,7 @@ async def get_setlist(
 
     if len(setlist) == 0:
         await cur.execute(
-            """UPDATE "event_details" SET setlist_certainty='Unknown'
+            """UPDATE "events" SET setlist_certainty='Unknown'
                 WHERE event_id=%s""",
             (event_id,),
         )
@@ -266,7 +266,7 @@ async def get_setlist(
         print(f"No setlist available for {event_url}")
     else:
         await cur.execute(
-            """UPDATE "event_details" SET setlist_certainty='Confirmed'
+            """UPDATE "events" SET setlist_certainty='Confirmed'
                 WHERE event_id=%s""",
             (event_id,),
         )

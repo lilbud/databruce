@@ -34,7 +34,7 @@ async def song_opener_closer_count(pool: AsyncConnectionPool) -> None:
                             SUM(CASE WHEN s.position IN ('Show Closer')
                                 THEN 1 ELSE 0 END) AS closer_count
                         FROM "setlists" s
-                        LEFT JOIN "event_details" e USING (event_id)
+                        LEFT JOIN "events" e USING (event_id)
                         WHERE e.setlist_certainty = 'Confirmed'
                         GROUP BY s.song_id
                         ORDER BY s.song_id
@@ -123,8 +123,11 @@ async def get_songs(pool: AsyncConnectionPool) -> None:
         try:
             await cur.executemany(
                 """INSERT INTO "songs" (brucebase_url, song_name)
-                        VALUES (%s, %s) ON CONFLICT(brucebase_url) DO NOTHING RETURNING *""",
+                    VALUES (%s, %s) ON CONFLICT(brucebase_url)
+                    DO NOTHING RETURNING *""",
                 (links),
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-            print("Could not complete operation:", e)
+            print("SONGS: Could not complete operation:", e)
+        else:
+            print("Got Songs")

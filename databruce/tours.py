@@ -18,19 +18,19 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
                         num_shows=t.event_count
                     FROM (
                         SELECT
-                            e.tour,
+                            e.tour_id,
                             MIN(e.event_id) AS first,
                             MAX(e.event_id) AS last,
                             COUNT(DISTINCT(s.song_id)) AS song_count,
                             COUNT(DISTINCT(e.event_id)) AS event_count
-                        FROM "event_details" e
+                        FROM "events" e
                         LEFT JOIN "setlists" s USING(event_id)
                         WHERE e.event_type NOT SIMILAR TO 'Rescheduled_*'
                         AND s.set_name <> ANY(ARRAY['Soundcheck', 'Rehearsal'])
-                        AND e.tour IS NOT NULL
-                        GROUP BY e.tour
+                        AND e.tour_id IS NOT NULL
+                        GROUP BY e.tour_id
                     ) t
-                    WHERE "tours"."id" = t.tour""",
+                    WHERE "tours"."id" = t.tour_id""",
             )
 
             # rehearsals specific
@@ -43,18 +43,20 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
                         num_shows=t.event_count
                     FROM (
                         SELECT
-                            e.tour,
+                            e.tour_id,
                             MIN(e.event_id) AS first,
                             MAX(e.event_id) AS last,
                             COUNT(DISTINCT(s.song_id)) AS song_count,
                             COUNT(DISTINCT(e.event_id)) AS event_count
-                        FROM "event_details" e
+                        FROM "events" e
                         LEFT JOIN "setlists" s USING(event_id)
-                        WHERE e.tour = '43'
-                        GROUP BY e.tour
+                        WHERE e.tour_id = '43'
+                        GROUP BY e.tour_id
                     ) t
-                    WHERE "tours"."id" = t.tour""",
+                    WHERE "tours"."id" = t.tour_id""",
             )
 
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("TOURS: Could not complete operation:", e)
+
+    print("Updated Tours")

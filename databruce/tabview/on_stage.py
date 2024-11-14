@@ -94,7 +94,6 @@ async def get_onstage(  # noqa: C901, PLR0912
                     results["onstage"].append(current)
 
     for item in results["onstage"]:
-        print(item)
         item["relation_id"] = await get_relation_id(item["relation_id"], cur)
         try:
             await cur.execute(

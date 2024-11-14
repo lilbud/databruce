@@ -64,7 +64,7 @@ async def certainty(
         event_certainty = "Confirmed"
 
     await cur.execute(
-        """UPDATE "event_details" SET event_certainty=%s WHERE event_id=%s""",
+        """UPDATE "events" SET event_certainty=%s WHERE event_id=%s""",
         (event_certainty, event_id),
     )
 
@@ -84,19 +84,6 @@ async def tabview_handler(soup: bs4, event_url: str, cur: psycopg.Cursor) -> Non
                     await setlist.get_setlist(tab_content, event_url, cur)
     except AttributeError:
         return
-
-
-async def add_to_event_details(
-    event_id: str,
-    event_type: str,
-    cur: psycopg.AsyncCursor,
-) -> None:
-    """Add event to event_details if not there."""
-    await cur.execute(
-        """INSERT INTO "event_details" (event_id, event_type) VALUES (%s, %s)
-            ON CONFLICT(event_id) DO NOTHING""",
-        (event_id, event_type),
-    )
 
 
 async def get_event_type(event_url: str) -> str:
@@ -155,9 +142,6 @@ async def scrape_event_page(
 
         event_type = await get_event_type(event_url)
 
-        # add event to event_details
-        await add_to_event_details(event_id, event_type, cur)
-
         # check for unknown date or unknown in venue_id
         await certainty(event_date, event_id, venue_url, cur)
 
@@ -170,10 +154,12 @@ async def scrape_event_page(
 
         try:
             await cur.execute(
-                """UPDATE "events" SET venue_id=%s, early_late=%s WHERE event_id=%s""",
+                """UPDATE "events" SET venue_id=%s, early_late=%s, event_type=%s
+                    WHERE event_id=%s""",
                 (
                     venue_id,
                     show,
+                    event_type,
                     event_id,
                 ),
             )

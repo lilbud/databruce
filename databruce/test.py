@@ -5,10 +5,14 @@ import json
 import re
 from pathlib import Path
 
+import enchant
 import ftfy
 from bs4 import BeautifulSoup as bs4
 from database.db import load_db
 from dotenv import load_dotenv
+from psycopg.rows import dict_row
+from spellchecker import SpellChecker
+from textblob import TextBlob, Word
 from tools.scraping import scraper
 
 load_dotenv()
@@ -26,40 +30,18 @@ load_dotenv()
 # print(location.raw)
 
 
-# async def main():
-#     test = "Burnin’ Train"
+async def main():
+    res = await scraper.get(
+        "https://www.filefactory.com/share/fo:c3705fa242d4a8c5,fo:4c2aba2f5ac3fc9f,fo:960344f7e8742151,fo:274bd157db1fe3b3,fo:3e2add03add61beb,fo:0c02d542c7d87ad3,fo:e95729649e789439,fo:34a6eb21436e23d0,fo:62eaa8606dc7ef83,fo:51df2f441f1d63f3,fo:c766224894b65665,fo:363a356614c685af,fo:95cd7820d0e4194a,fo:70966df79b81d402,fo:7fc34af02227dc60,fo:a739582684bd1051,fo:e472d11ba97c1757,fo:3c6224dac30c0c35,fo:9a61db5fde407169,fo:1bb1b1bd53a1c976,fo:343b91efee5dc609,fo:3e8f7acceeec8f4c,fo:b1347f89ca4092be,fo:01e59c2294e214a7,fo:b70d9244c74b1a47,fo:1af3ae4371a5218f,fo:2c4da34acc6bdf95,fo:a42c85e238d635b8,fo:88f2b3cfe3d3cfdd,fo:ba372155c372af23",
+    )
 
-#     print(ftfy.fix_text(test))
+    if res:
+        soup = bs4(res, "lxml")
+        for i in soup.find_all("a", href=re.compile("filefactory.com/folder")):
+            link = f"{re.search("http.*/", i["href"])[0]}?export=1"
+            text = i.get_text().strip()
+
+            print(f"{text},{link}")
 
 
-# asyncio.run(main())
-venues = [
-    "television-centre-london-england",
-    "anfield-liverpool-england",
-    "david-geffen-theater-los-angeles-ca",
-    "museum-of-modern-art-new-york-city-ny",
-    "co-op-live-manchester-england",
-    "reale-arena-donostia-san-sebastian-spain",
-    "decathlon-arena-villeneuve-d-ascq-france",
-]
-
-with load_db() as conn:
-    events = conn.execute(
-        """SELECT brucebase_url AS id FROM events WHERE venue_id IS NULL""",
-    ).fetchall()
-
-    for event in events:
-        venue_url = re.sub(r"/.*:\d{4}-\d{2}-\d{2}-", "", event["id"])
-
-        venue = conn.execute(
-            """SELECT id FROM venues WHERE brucebase_url = %s""",
-            (venue_url,),
-        ).fetchone()
-
-        if venue:
-            venue_id = venue["id"]
-
-            conn.execute(
-                """UPDATE events SET venue_id = %s WHERE brucebase_url = %s""",
-                (venue_id, event["id"]),
-            )
+asyncio.run(main())

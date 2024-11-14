@@ -5,6 +5,7 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 
+# unneeded
 async def update_bands(pool: AsyncConnectionPool) -> None:
     """Get a list of all the bands that Bruce has either played or recorded with."""
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:

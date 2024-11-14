@@ -1,6 +1,7 @@
 import re
 
 import httpx
+import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
@@ -31,9 +32,17 @@ async def get_covers(pool: AsyncConnectionPool) -> list["str"]:
                 date = re.search(r"\d{4}-\d{2}-\d{2}", img["path"])[0]
                 url = f"{base_url}/{img["path"]}"
 
-                await cur.execute(
-                    """INSERT INTO "covers" (event_date, cover_url)
-                        VALUES (%(date)s, %(url)s)
-                        ON CONFLICT(cover_url) DO NOTHING""",
-                    {"date": date, "url": url},
-                )
+                try:
+                    await cur.execute(
+                        """INSERT INTO "covers" (event_date, cover_url)
+                            VALUES (%(date)s, %(url)s)
+                            ON CONFLICT(cover_url) DO NOTHING""",
+                        {"date": date, "url": url},
+                    )
+                except (
+                    psycopg.OperationalError,
+                    psycopg.IntegrityError,
+                ) as e:
+                    print("COVERS: Could not complete operation:", e)
+
+        print("Got Covers")

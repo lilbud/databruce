@@ -19,7 +19,9 @@ async def update_relations(pool: AsyncConnectionPool) -> None:
                     WHERE o.relation_id IS NOT NULL
                     GROUP BY o.relation_id""",
             )
-
+        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+            print("Could not complete operation:", e)
+        else:
             for row in await res.fetchall():
                 await cur.execute(
                     """INSERT INTO "relations" (id, appearances,
@@ -35,5 +37,3 @@ async def update_relations(pool: AsyncConnectionPool) -> None:
                         "last": row["last"],
                     },
                 )
-        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-            print("Could not complete operation:", e)
