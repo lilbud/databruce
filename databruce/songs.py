@@ -15,6 +15,32 @@ from tools.parsing import html_parser
 from tools.scraping import scraper
 
 
+async def song_snippet_count(pool: AsyncConnectionPool) -> None:
+    """Count the number of times a song has been played as a snippet."""
+    async with pool.connection() as conn, conn.cursor(
+        row_factory=dict_row,
+    ) as cur:
+        try:
+            await cur.execute(
+                """
+                UPDATE "songs"
+                SET
+                    num_plays_snippet = t.count
+                FROM (
+                    SELECT
+                        s.brucebase_url,
+                        count(s1.snippet_id) AS count
+                    FROM songs s
+                    LEFT JOIN snippets s1 ON s1.snippet_id = s.brucebase_url
+                    GROUP BY s.brucebase_url
+                ) t
+                WHERE "songs"."brucebase_url" = t.brucebase_url""",
+            )
+
+        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+            print("Could not complete operation:", e)
+
+
 async def song_opener_closer_count(pool: AsyncConnectionPool) -> None:
     """Count the number of times a song has opened/closed a show."""
     async with pool.connection() as conn, conn.cursor(

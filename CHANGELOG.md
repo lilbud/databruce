@@ -19,3 +19,7 @@
 - 2024-10-31 - split the Broadway run into 2 separate tours. Mostly the same show but slightly different and also a different location
 - 2024-11-11 - merged `events` and `event_details`, having them separate made no sense. Plus more often than not I'd have to join events when querying details just to get the date or something. Having them combined just makes things much easier.
 - 2024-11-13 - major update because I forgot to push many of these to git. Merged all 3 location functions into a single file, much easier to manage that way. As well as a number of updates due to the change above in merging the event tables.
+- 2024-11-20 - I updated the releases table to remove the duplicate entries. Originally had releases split by date, but the tracks already pointed to dates, meaning this was unnecessary. 
+- 2024-11-22
+    - added a `snippet count` to the songs table. Which meant adding a new command to do that on an update.
+    - fixed some `onstage` items missing the band_id

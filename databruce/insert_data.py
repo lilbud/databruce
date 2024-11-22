@@ -24,6 +24,7 @@ from setlist.song_gap_calc import calc_song_gap
 from songs import (
     get_songs,
     song_opener_closer_count,
+    song_snippet_count,
     update_song_info,
 )
 from tours import update_tours
@@ -61,7 +62,7 @@ async def update_get_new(pool: AsyncConnectionPool) -> None:
     await get_songs(pool)
     await get_venues(pool)
     await get_events(pool)
-    # await get_covers(pool)
+    await get_covers(pool)
 
 
 async def update_existing(pool: AsyncConnectionPool) -> None:
@@ -80,15 +81,15 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
     await calc_song_gap(pool)
     await opener_closer(pool)
     await song_opener_closer_count(pool)
+    await song_snippet_count(pool)
 
 
 async def main(pool: AsyncConnectionPool) -> None:
     """Test."""
     async with pool as pool:
         # await update_get_new(pool)
-        # await update_existing(pool)
-        # await update_stats(pool)
-        await get_covers(pool)
+        await update_existing(pool)
+        await update_stats(pool)
 
         # async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         #     await scrape_event_page(
