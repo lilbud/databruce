@@ -1,12 +1,12 @@
 name: update database
 on:
-  # push:
+  push:
   schedule:
     - cron: "0 6 * * *"
 jobs:
   container-job:
     # Containers must run in Linux based operating systems
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04.05
     # Docker Hub image that `container-job` executes in
     container: node:latest
 
@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Set up Python 3.x
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.12
 
@@ -51,42 +51,42 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Install PostgreSQL client
-        run: |
-          apt-get update
-          apt-get install --yes postgresql-client
+      # - name: Install PostgreSQL client
+      #   run: |
+      #     apt-get update
+      #     apt-get install --yes postgresql-client
 
-      - name: Install Heroku CLI
-        run: curl https://cli-assets.heroku.com/install-ubuntu.sh | sh
+      # - name: Install Heroku CLI
+      #   run: curl https://cli-assets.heroku.com/install-ubuntu.sh | sh
 
-      - name: Heroku login credentials
-        run: |
-            cat > ~/.netrc <<EOF
-              machine api.heroku.com
-                login $HEROKU_EMAIL
-                password $HEROKU_API_KEY
-              machine git.heroku.com
-                login $HEROKU_EMAIL
-                password $HEROKU_API_KEY
-            EOF
-        env:
-            HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-            HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+      # - name: Heroku login credentials
+      #   run: |
+      #       cat > ~/.netrc <<EOF
+      #         machine api.heroku.com
+      #           login $HEROKU_EMAIL
+      #           password $HEROKU_API_KEY
+      #         machine git.heroku.com
+      #           login $HEROKU_EMAIL
+      #           password $HEROKU_API_KEY
+      #       EOF
+      #   env:
+      #       HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      #       HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
       
-      - name: pull heroku db and load into db
-        run: |
-          pg_dump -Ft --no-acl --no-owner $HEROKU_DB_URL > latest.tar
-          pg_restore --verbose --clean --if-exists --no-acl --no-owner -h postgres -U postgres -d databruce latest.tar
-        env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-          HEROKU_DB_URL: ${{ secrets.HEROKU_DB_URL }}
+      # - name: pull heroku db and load into db
+      #   run: |
+      #     pg_dump -Ft --no-acl --no-owner $HEROKU_DB_URL > latest.tar
+      #     pg_restore --verbose --clean --if-exists --no-acl --no-owner -h postgres -U postgres -d databruce latest.tar
+      #   env:
+      #     PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+      #     HEROKU_DB_URL: ${{ secrets.HEROKU_DB_URL }}
       
-      - name: get updates
-        run: python ./databruce/insert_data.py
-        env:
-          LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
+      # - name: get updates
+      #   run: python ./databruce/insert_data.py
+      #   env:
+      #     LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
       
-      - name: push to heroku
-        run: heroku pg:push $LOCAL_DB_URL DATABASE_URL --app brucebot-discord
-        env:
-          LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
+      # - name: push to heroku
+      #   run: heroku pg:push $LOCAL_DB_URL DATABASE_URL --app brucebot-discord
+      #   env:
+      #     LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
