@@ -22,7 +22,7 @@ jobs:
           # optional (defaults to `postgres`)
           POSTGRES_DB: databruce
           # required
-          POSTGRES_PASSWORD: password
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           # optional (defaults to `5432`)
           POSTGRES_PORT: 5432
           # optional (defaults to `postgres`)
@@ -77,15 +77,15 @@ jobs:
           pg_dump -Ft --no-acl --no-owner $HEROKU_DB_URL > latest.tar
           pg_restore --verbose --clean --if-exists --no-acl --no-owner -h postgres -U postgres -d databruce latest.tar
         env:
-          PGPASSWORD: password
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
           HEROKU_DB_URL: ${{ secrets.HEROKU_DB_URL }}
       
       - name: get updates
         run: python ./databruce/insert_data.py
         env:
-          LOCAL_DB_URL: postgresql://postgres:password@postgres:5432/databruce
+          LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
       
       - name: push to heroku
         run: heroku pg:push $LOCAL_DB_URL DATABASE_URL --app brucebot-discord
         env:
-          LOCAL_DB_URL: postgresql://postgres:password@postgres:5432/databruce
+          LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
