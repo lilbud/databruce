@@ -89,4 +89,4 @@ jobs:
       - name: push to heroku
         run: heroku pg:push $LOCAL_DB_URL DATABASE_URL --app brucebot-discord
         env:
-      #     LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
+          LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
