@@ -6,7 +6,7 @@ on:
 jobs:
   container-job:
     # Containers must run in Linux based operating systems
-    runs-on: ubuntu-22.04.05
+    runs-on: ubuntu-22.04
     # Docker Hub image that `container-job` executes in
     container: node:latest
 
