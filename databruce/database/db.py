@@ -14,7 +14,8 @@ pool = AsyncConnectionPool(conninfo=DATABASE_URL, open=False)
 def reset_serials(conn: psycopg.Connection) -> None:
     """Fix the IDs being way out of order."""
     """Found that the IDs increment whether an insert is done or not. Meaning the IDs
-    will have sometimes 10k values between rows"""
+    will have sometimes 10k values between rows. Basically a nitpicky thing and I know
+    it really doesn't matter."""
     conn.execute("""
         SELECT setval(pg_get_serial_sequence('bands', 'id'), coalesce(MAX(id), 1))
         from bands;

@@ -7,6 +7,8 @@ async def calc_song_gap(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
+            UPDATE "setlists" SET last=NULL, next=NULL, last_time_played=NULL;
+
             UPDATE "setlists"
             SET
                 last = t.last,

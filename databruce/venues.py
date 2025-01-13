@@ -102,7 +102,10 @@ async def update_venue_count(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         try:
             await cur.execute(
-                """UPDATE "venues"
+                """
+                UPDATE "venues" SET num_events=0, first_played=NULL, last_played=NULL;
+
+                UPDATE "venues"
                     SET
                         num_events = t.num,
                         first_played = t.first_played,

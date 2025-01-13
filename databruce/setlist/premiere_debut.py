@@ -9,9 +9,11 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
+                UPDATE "setlists" SET debut = false, premiere=false;
+
                 UPDATE "setlists"
                 SET
-                    debut=true, premiere=false
+                    debut=true
                 FROM (
                     SELECT
                             *
@@ -21,7 +23,7 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
 
                 UPDATE "setlists"
                 SET
-                    premiere=true, debut = false
+                    premiere=true
                 FROM (
                     SELECT
                             *

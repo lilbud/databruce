@@ -6,7 +6,7 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 
-async def get_covers(pool: AsyncConnectionPool) -> list["str"]:
+async def get_covers(pool: AsyncConnectionPool) -> None:
     """Grab a list of covers from my site and insert into database."""
     async with httpx.AsyncClient() as client:
         base_url = "https://raw.githubusercontent.com/lilbud/Bootleg_Covers/main"

@@ -3,55 +3,38 @@ import json
 import os
 from pathlib import Path
 
+import httpx
 import psycopg
 from dotenv import load_dotenv
-from internetarchive import get_item, search_items
+from internetarchive import get_files, get_item, search_items
 from psycopg.rows import dict_row
+from psycopg_pool import AsyncConnectionPool
 
 load_dotenv()
 
-with Path.open(Path(Path(__file__).parent, "scripts", "uploaded.json")) as file:
-    links = dict(json.load(file))
 
-
-async def load_db() -> psycopg.Connection:
-    """Load DB and return connection."""
-    return psycopg.connect(
-        conninfo=os.getenv("LOCAL_DB_URL"),
-        row_factory=dict_row,
-    )
-
-
-async def get_list_from_archive() -> None:
+async def get_list_from_archive(pool: AsyncConnectionPool) -> None:
     """b,."""
-    with await load_db() as conn:
-        for i in search_items("collection:radionowhere"):
-            event_id = get_item(i["identifier"]).metadata["databruce_id"]
-            print(event_id)
+    items = []
 
-            conn.execute(
-                """INSERT INTO archive_links (event_id, archive_url) VALUES (%s, %s)""",
-                (event_id, i["identifier"]),
-            )
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://archive.org/advancedsearch.php?q=collection%3A%22radionowhere%22&fl[]=identifier&fl[]=databruce_id&sort[]=&sort[]=&sort[]=&rows=2000&page=1&output=json",
+        )
 
+        if response:
+            items = [
+                [
+                    item["databruce_id"],
+                    f"https://archive.org/details/{item["identifier"]}",
+                ]
+                for item in response.json()["response"]["docs"]
+            ]
 
-async def get_json_list() -> None:
-    """."""
-    with await load_db() as conn:
-        for event, identifier in links.items():
-            if isinstance(identifier, list):
-                for i in identifier:
-                    conn.execute(
-                        """INSERT INTO archive_links (event_id, archive_url)
-                            VALUES (%s, %s)""",
-                        (event, f"https://archive.org/details/{i}"),
-                    )
-            else:
-                conn.execute(
-                    """INSERT INTO archive_links (event_id, archive_url)
-                        VALUES (%s, %s)""",
-                    (event, f"https://archive.org/details/{identifier}"),
-                )
-
-
-asyncio.run(get_json_list())
+    # print(items)
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.executemany(
+            """INSERT INTO archive_links (event_id, archive_url) VALUES (%s, %s)
+                ON CONFLICT(event_id, archive_url) DO NOTHING RETURNING *""",
+            (items),
+        )

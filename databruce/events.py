@@ -55,6 +55,8 @@ async def event_num_fix(cur: psycopg.AsyncCursor) -> None:
     """Update event_num after new events inserted."""
     await cur.execute(
         """
+        UPDATE "events" SET event_num = NULL;
+
         UPDATE "events"
         SET
             event_num=t.num
@@ -63,6 +65,7 @@ async def event_num_fix(cur: psycopg.AsyncCursor) -> None:
                 row_number() OVER (ORDER BY event_id) AS num,
                 event_id
             FROM "events"
+        WHERE brucebase_url NOT LIKE '/nogig:%'
         ) t
         WHERE "events".event_id=t.event_id;
         """,
@@ -94,6 +97,7 @@ async def get_events(pool: AsyncConnectionPool) -> None:
         "/recording:1985-07-00-shakedown-studios-new-york-city-ny-2",
         "/recording:1986-02-00-shorefire-studios-long-branch-nj-2",
         "/recording:1987-02-00-shakedown-studios-new-york-city-ny-2",
+        "/gig:1984-08-20-brendan-byrne-arena-east-rutherford-nj-2",
     ]
 
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
@@ -113,7 +117,6 @@ async def get_events(pool: AsyncConnectionPool) -> None:
                         event_note = None
 
                         if "-00" in event_date:
-                            event_date = event_date.replace("-00", "-01")
                             event_note = "Placeholder date, actual date unknown."
 
                         event_id = await get_event_id(event_date, cur)

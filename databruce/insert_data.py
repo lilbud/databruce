@@ -9,6 +9,7 @@ import asyncio
 import datetime
 import time
 
+from archive_org import get_list_from_archive
 from covers import get_covers
 from database import db
 from event_page import scrape_event_page
@@ -27,7 +28,7 @@ from songs import (
     song_snippet_count,
     update_song_info,
 )
-from tours import update_tours
+from tours import update_tour_runs, update_tours
 from venues import get_venues, update_venue_count
 
 start = time.perf_counter()
@@ -63,12 +64,14 @@ async def update_get_new(pool: AsyncConnectionPool) -> None:
     await get_venues(pool)
     await get_events(pool)
     await get_covers(pool)
+    # await get_list_from_archive(pool)
 
 
 async def update_existing(pool: AsyncConnectionPool) -> None:
     """Update existing counts in database."""
     await update_locations(pool)
     await update_tours(pool)
+    await update_tour_runs(pool)
     await get_new_setlists(pool)
     await update_venue_count(pool)
     await update_song_info(pool)
@@ -87,13 +90,13 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
 async def main(pool: AsyncConnectionPool) -> None:
     """Test."""
     async with pool as pool:
-        # await update_get_new(pool)
+        await update_get_new(pool)
         await update_existing(pool)
         await update_stats(pool)
 
         # async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         #     await scrape_event_page(
-        #         "/gig:2024-11-06-scotiabank-arena-toronto-on",
+        #         "/gig:2024-11-22-rogers-arena-vancouver-bc",
         #         cur,
         #         conn,
         #     )

@@ -9,6 +9,7 @@ This module provides:
 
 import re
 
+import ftfy
 from bs4 import BeautifulSoup as bs4
 
 
@@ -19,7 +20,10 @@ async def get_clean_links(soup: bs4, pattern: str) -> list[str]:
     tag stripped from the start (/song:)
     """
     return [
-        {"url": re.sub(pattern, "", link["href"]), "text": link.text.strip()}
+        {
+            "url": re.sub(pattern, "", link["href"]),
+            "text": ftfy.fix_text(link.text.strip()),
+        }
         for link in soup.find_all("a", href=re.compile(pattern))
     ]
 

@@ -5,10 +5,11 @@ This module provides:
 - post: Make a POST request to the given URL.
 """
 
+import json
 import secrets
 from pathlib import Path
 
-import httpx
+import niquests
 
 
 async def get_random_user_agent() -> str:
@@ -20,20 +21,20 @@ async def get_random_user_agent() -> str:
         return secrets.choice(user_agents.read().splitlines())
 
 
-async def get(url: str) -> httpx.Response:
+async def get(url: str) -> niquests.Response:
     """Make a GET request to the given URL."""
-    async with httpx.AsyncClient() as client:
+    async with niquests.AsyncSession() as s:
         try:
-            response = await client.get(
+            response = await s.get(
                 url,
                 headers={
                     "User-Agent": await get_random_user_agent(),
                     "Cookie": "wikidot_token7=0",
                 },
-                follow_redirects=True,
+                allow_redirects=True,
                 timeout=5,
             )
-        except httpx.RequestError as exc:
+        except niquests.ConnectionError as exc:
             print(f"An error occurred while requesting {exc.request.url!r}.")
         else:
             return response
@@ -41,9 +42,9 @@ async def get(url: str) -> httpx.Response:
 
 async def post(category_id: str) -> dict:
     """Make a POST request to Brucebase's category list for the given category."""
-    async with httpx.AsyncClient() as client:
+    async with niquests.AsyncSession() as s:
         try:
-            response = await client.post(
+            response = await s.post(
                 "http://brucebase.wikidot.com/ajax-module-connector.php",
                 headers={
                     "User-Agent": await get_random_user_agent(),
@@ -56,8 +57,8 @@ async def post(category_id: str) -> dict:
                 },
             )
 
-            return response.json()["body"]
-        except httpx.RequestError as exc:
+            return json.loads(response.text)["body"]
+        except niquests.ConnectionError as exc:
             print(f"An error occurred while requesting {exc.request.url!r}.")
         except KeyError as e:
             print(f"Key Not Found in Response Dictionary: {e}")

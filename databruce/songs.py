@@ -23,6 +23,8 @@ async def song_snippet_count(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
+                UPDATE "songs" SET num_plays_snippet = 0;
+
                 UPDATE "songs"
                 SET
                     num_plays_snippet = t.count
@@ -80,6 +82,8 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
+                    UPDATE "songs" SET first_played=NULL, last_played=NULL, num_plays_public=0, num_plays_private=0;
+
                     UPDATE "songs"
                     SET
                         first_played=t.first,
@@ -87,34 +91,33 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                         num_plays_public=t.public_count,
                         num_plays_private=t.private_count
                     FROM (
-                        WITH private_count AS (
+                        WITH first_last AS (
                             SELECT
-                            s.song_id,
-                            SUM(
-                                CASE
-                                    WHEN s.set_name = ANY(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview']) THEN 1
-                                    ELSE 0
-                                END
-                            ) AS count
-                            FROM "setlists" s
+                                s.song_id,
+                                MIN(s.event_id) AS first,
+                                MAX(s.event_id) AS last
+                            FROM setlists s
+                            WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])
                             GROUP BY s.song_id
                         )
-                        SELECT
-                            s.song_id AS id,
-                            MIN(s.event_id) AS first,
-                            MAX(s.event_id) AS last,
-                            SUM(
-                                CASE
-                                    WHEN s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview']) THEN 1
-                                    ELSE 0
-                                END
-                            ) AS public_count,
-                            p.count AS private_count
-                        FROM "setlists" s
-                        LEFT JOIN "private_count" p ON p.song_id = s.song_id
-                        WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])
-                        GROUP BY s.song_id, p.count
-                        ORDER BY s.song_id
+                            SELECT
+                                s.song_id AS id,
+                                f.first,
+                                f.last,
+                                SUM (
+                                    CASE
+                                        WHEN s.set_name = ANY(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview']) THEN 1 ELSE 0
+                                    END
+                                ) AS private_count,
+                                SUM (
+                                    CASE
+                                        WHEN s.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview']) THEN 1 ELSE 0
+                                    END
+                                ) AS public_count
+                            FROM setlists s
+                            LEFT JOIN first_last f ON f.song_id = s.song_id
+                            GROUP BY s.song_id, f.first, f.last
+                            ORDER BY s.song_id
                     ) t
                     WHERE "songs"."brucebase_url" = t.id;""",  # noqa: E501
             )
@@ -131,6 +134,7 @@ async def get_songs(pool: AsyncConnectionPool) -> None:
     ignore = [
         "born-in-the-usa",
         "land-of-1-000-dances",
+        "land-of-1000-dances",
         "deportee-plane-wreck-at-los-gatos",
     ]
 
