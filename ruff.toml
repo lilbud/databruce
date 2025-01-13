@@ -2,13 +2,13 @@
 select = ["ALL"]
 
 ignore = [
-    "T201", # ignore printing
-    "FA102", # future-required-type-annotation
+    "T201",    # ignore printing
+    "FA102",   # future-required-type-annotation
     "PERF203", # try-except-in-loop
-    "D100", # missing docstring
-    "F401", # missing imports
+    "D100",    # missing docstring
+    # "F401", # missing imports
     "ANN101", # missing-type-self
     "RUF001", # ambiguous-unicode-character-string
-    "N813", # imports not as camelcase
+    "N813",   # imports not as camelcase
     # "E501", # line too long
 ]

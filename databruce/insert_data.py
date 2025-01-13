@@ -17,7 +17,6 @@ from events import get_events
 from locations import update_locations
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
-from relations.bands import update_bands
 from relations.relations import update_relations
 from setlist.opener_closer import opener_closer
 from setlist.premiere_debut import debut_premiere

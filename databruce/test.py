@@ -1,27 +1,8 @@
 """File for testing random code/functions/ideas."""
 
-import asyncio
-import json
-import random
-import re
-from datetime import datetime
-from pathlib import Path
-
-import dateparser
-import enchant
-import ftfy
 import httpx
-import musicbrainzngs
-import pandas as pd
-import psycopg
 from bs4 import BeautifulSoup as bs4
-from database.db import load_db
 from dotenv import load_dotenv
-from psycopg.rows import dict_row
-from spellchecker import SpellChecker
-from textblob import TextBlob, Word
-from tools.parsing import html_parser
-from tools.scraping import scraper
 
 load_dotenv()
 

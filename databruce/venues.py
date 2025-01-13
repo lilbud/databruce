@@ -7,7 +7,6 @@ This module provides:
 - update_venue_info: Update EVENTS with venue info. Update VENUES with event count.
 """
 
-import asyncio
 import re
 
 import ftfy

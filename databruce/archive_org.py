@@ -1,13 +1,5 @@
-import asyncio
-import json
-import os
-from pathlib import Path
-
-import httpx
-import niquests
 import psycopg
 from dotenv import load_dotenv
-from internetarchive import get_files, get_item, search_items
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from tools.scraping import scraper

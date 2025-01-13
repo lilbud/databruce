@@ -5,9 +5,6 @@ This module provides:
 - get_events: Get events from the site and inserts them into the database.
 """
 
-import re
-
-import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
 from psycopg.rows import dict_row
