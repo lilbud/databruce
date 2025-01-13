@@ -165,7 +165,7 @@ async def venue_parser(
     try:
         match = re.search(r"(\((.+)\))", fixed_name)
         prefix = re.escape(match[1])
-        venue_name = f"{match[2]} {re.sub(rf"\s*{prefix}\s*", "", fixed_name)}"
+        venue_name = f"{match[2]} {re.sub(rf'\s*{prefix}\s*', '', fixed_name)}"
     except TypeError:
         venue_name = re.sub(r"([()])", "", fixed_name)
 

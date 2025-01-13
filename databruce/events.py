@@ -34,9 +34,9 @@ async def get_event_id(event_date: str, cur: psycopg.AsyncCursor) -> str:
         # get the last digit of the highest event id for a date
         # then append 1 to it and return
         last_num = str(int(max_date["id"][-1]) + 1).zfill(2)
-        return f"{event_date.replace("-", "")}-{last_num}"
+        return f"{event_date.replace('-', '')}-{last_num}"
     except TypeError:
-        return f"{event_date.replace("-", "")}-01"
+        return f"{event_date.replace('-', '')}-01"
 
 
 async def get_events_from_db(cur: psycopg.AsyncCursor) -> list["str"]:

@@ -30,7 +30,7 @@ async def get_covers(pool: AsyncConnectionPool) -> None:
                 img["path"],
             ):
                 date = re.search(r"\d{4}-\d{2}-\d{2}", img["path"])[0]
-                url = f"{base_url}/{img["path"]}"
+                url = f"{base_url}/{img['path']}"
 
                 try:
                     await cur.execute(

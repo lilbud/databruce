@@ -17,7 +17,7 @@ async def get_list_from_archive(pool: AsyncConnectionPool) -> None:
         items = [
             [
                 item["databruce_id"],
-                f"https://archive.org/details/{item["identifier"]}",
+                f"https://archive.org/details/{item['identifier']}",
             ]
             for item in response.json()["response"]["docs"]
         ]

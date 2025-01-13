@@ -1,6 +1,6 @@
 name: update database
 on:
-  push:
+  # push:
   schedule:
     - cron: "0 6 * * *"
 jobs:
@@ -36,18 +36,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-  
+
     steps:
       - name: checkout
         uses: actions/checkout@v4
-      
+
       - name: Set up Python 3.x
         uses: actions/setup-python@v5
         with:
           python-version: 3.12
 
       - name: Install dependencies
-        run: | 
+        run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
@@ -61,18 +61,18 @@ jobs:
 
       - name: Heroku login credentials
         run: |
-            cat > ~/.netrc <<EOF
-              machine api.heroku.com
-                login $HEROKU_EMAIL
-                password $HEROKU_API_KEY
-              machine git.heroku.com
-                login $HEROKU_EMAIL
-                password $HEROKU_API_KEY
-            EOF
+          cat > ~/.netrc <<EOF
+            machine api.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+            machine git.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+          EOF
         env:
-            HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-            HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
-      
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+
       - name: pull heroku db and load into db
         run: |
           pg_dump -Ft --no-acl --no-owner $HEROKU_DB_URL > latest.tar
@@ -80,12 +80,12 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD }}
           HEROKU_DB_URL: ${{ secrets.HEROKU_DB_URL }}
-      
+
       - name: get updates
         run: python ./databruce/insert_data.py
         env:
           LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
-      
+
       - name: push to heroku
         run: heroku pg:push $LOCAL_DB_URL DATABASE_URL --app brucebot-discord
         env:

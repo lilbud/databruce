@@ -106,5 +106,5 @@ if __name__ == "__main__":
 
     end = time.perf_counter()
 
-    print(f"Time: {(end-start)} sec")
+    print(f"Time: {(end - start)} sec")
     print(f"End Time: {current_datetime.hour}:{current_datetime.minute}")

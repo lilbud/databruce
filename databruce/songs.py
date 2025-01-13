@@ -17,9 +17,12 @@ from tools.scraping import scraper
 
 async def song_snippet_count(pool: AsyncConnectionPool) -> None:
     """Count the number of times a song has been played as a snippet."""
-    async with pool.connection() as conn, conn.cursor(
-        row_factory=dict_row,
-    ) as cur:
+    async with (
+        pool.connection() as conn,
+        conn.cursor(
+            row_factory=dict_row,
+        ) as cur,
+    ):
         try:
             await cur.execute(
                 """
@@ -45,9 +48,12 @@ async def song_snippet_count(pool: AsyncConnectionPool) -> None:
 
 async def song_opener_closer_count(pool: AsyncConnectionPool) -> None:
     """Count the number of times a song has opened/closed a show."""
-    async with pool.connection() as conn, conn.cursor(
-        row_factory=dict_row,
-    ) as cur:
+    async with (
+        pool.connection() as conn,
+        conn.cursor(
+            row_factory=dict_row,
+        ) as cur,
+    ):
         try:
             await cur.execute(
                 """UPDATE "songs"
@@ -76,9 +82,12 @@ async def song_opener_closer_count(pool: AsyncConnectionPool) -> None:
 
 async def update_song_info(pool: AsyncConnectionPool) -> None:
     """Update SONGS with number of times played, as well as num times opened/closed."""
-    async with pool.connection() as conn, conn.cursor(
-        row_factory=dict_row,
-    ) as cur:
+    async with (
+        pool.connection() as conn,
+        conn.cursor(
+            row_factory=dict_row,
+        ) as cur,
+    ):
         try:
             await cur.execute(
                 """
@@ -147,9 +156,12 @@ async def get_songs(pool: AsyncConnectionPool) -> None:
             [link["url"], link["text"]] for link in songs if link["url"] not in ignore
         ]
 
-    async with pool.connection() as conn, conn.cursor(
-        row_factory=dict_row,
-    ) as cur:
+    async with (
+        pool.connection() as conn,
+        conn.cursor(
+            row_factory=dict_row,
+        ) as cur,
+    ):
         try:
             await cur.executemany(
                 """INSERT INTO "songs" (brucebase_url, song_name)
