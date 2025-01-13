@@ -1,12 +1,12 @@
 name: update database
 on:
-  # push:
+  push:
   schedule:
     - cron: "0 6 * * *"
 jobs:
   container-job:
     # Containers must run in Linux based operating systems
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # Docker Hub image that `container-job` executes in
     container: node:latest
 
@@ -22,7 +22,7 @@ jobs:
           # optional (defaults to `postgres`)
           POSTGRES_DB: databruce
           # required
-          POSTGRES_PASSWORD: password
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           # optional (defaults to `5432`)
           POSTGRES_PORT: 5432
           # optional (defaults to `postgres`)
@@ -41,6 +41,16 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
       
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: | 
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
       - name: Install PostgreSQL client
         run: |
           apt-get update
@@ -49,16 +59,6 @@ jobs:
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install-ubuntu.sh | sh
 
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.12
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-    
       - name: Heroku login credentials
         run: |
             cat > ~/.netrc <<EOF
@@ -78,15 +78,15 @@ jobs:
           pg_dump -Ft --no-acl --no-owner $HEROKU_DB_URL > latest.tar
           pg_restore --verbose --clean --if-exists --no-acl --no-owner -h postgres -U postgres -d databruce latest.tar
         env:
-          PGPASSWORD: password
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
           HEROKU_DB_URL: ${{ secrets.HEROKU_DB_URL }}
       
       - name: get updates
         run: python ./databruce/insert_data.py
         env:
-          LOCAL_DB_URL: postgresql://postgres:password@postgres:5432/databruce
+          LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
       
       - name: push to heroku
         run: heroku pg:push $LOCAL_DB_URL DATABASE_URL --app brucebot-discord
         env:
-          LOCAL_DB_URL: postgresql://postgres:password@postgres:5432/databruce
+          LOCAL_DB_URL: ${{ secrets.DATABASE_URL }}
