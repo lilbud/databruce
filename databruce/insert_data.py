@@ -64,7 +64,7 @@ async def update_get_new(pool: AsyncConnectionPool) -> None:
     await get_venues(pool)
     await get_events(pool)
     await get_covers(pool)
-    # await get_list_from_archive(pool)
+    await get_list_from_archive(pool)
 
 
 async def update_existing(pool: AsyncConnectionPool) -> None:

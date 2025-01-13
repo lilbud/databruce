@@ -1,9 +1,8 @@
 beautifulsoup4
 psycopg
+httpx
 ftfy
 titlecase
 python-dotenv
-internetarchive
 psycopg_pool
 lxml
-niquests
