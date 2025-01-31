@@ -154,6 +154,7 @@ async def venue_parser(
         "state": None,
         "country": None,
         "continent": None,
+        "detail": None,
     }
 
     # fixes venue names that aren't correct
@@ -222,17 +223,25 @@ async def get_venues(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         venues = [await venue_parser(link["text"], link["url"], cur) for link in links]
 
+        res = await cur.execute("""SELECT distinct brucebase_url FROM venues""")
+
+        # not the ideal way to do this. But, without this check, it will
+        # insert every single url whether there is a detail or not
+        existing = [v["brucebase_url"] for v in await res.fetchall()]
+
         for venue in venues:
-            try:
-                await cur.execute(
-                    """INSERT INTO "venues"
-                        (brucebase_url, name, city, state, country, continent)
-                        VALUES (%(id)s, %(name)s, %(city)s, %(state)s, %(country)s,
-                            %(continent)s)
-                        ON CONFLICT (brucebase_url) DO NOTHING RETURNING *""",
-                    venue,
-                )
-            except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-                print("VENUES: Could not complete operation:", e)
+            if venue["id"] not in existing:
+                try:
+                    await cur.execute(
+                        """INSERT INTO "venues"
+                            (brucebase_url, name, city, state, country, continent, detail)
+                            VALUES (%(id)s, %(name)s, %(city)s, %(state)s, %(country)s,
+                                %(continent)s, %(detail)s)
+                            ON CONFLICT (brucebase_url, name, detail)
+                            DO NOTHING RETURNING *""",
+                        venue,
+                    )
+                except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+                    print("VENUES: Could not complete operation:", e)
 
         print("Got Venues")

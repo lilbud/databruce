@@ -5,6 +5,8 @@ This module provides:
 - get_events: Get events from the site and inserts them into the database.
 """
 
+import re
+
 import psycopg
 from bs4 import BeautifulSoup as bs4
 from psycopg.rows import dict_row
@@ -115,6 +117,7 @@ async def get_events(pool: AsyncConnectionPool) -> None:
 
                         if "-00" in event_date:
                             event_note = "Placeholder date, actual date unknown."
+                            event_date = re.sub(r"\-00$", "-01", event_date)
 
                         event_id = await get_event_id(event_date, cur)
 
