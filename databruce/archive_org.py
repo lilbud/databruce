@@ -22,14 +22,14 @@ async def get_list_from_archive(pool: AsyncConnectionPool) -> None:
             for item in response.json()["response"]["docs"]
         ]
 
-    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-        try:
-            await cur.executemany(
-                """INSERT INTO archive_links (event_id, archive_url) VALUES (%s, %s)
-                    ON CONFLICT(event_id, archive_url) DO NOTHING RETURNING *""",
-                (items),
-            )
-        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-            print("ARCHIVE: Could not complete operation:", e)
-        else:
-            print("Got Songs")
+        async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            try:
+                await cur.executemany(
+                    """INSERT INTO archive_links (event_id, archive_url) VALUES (%s, %s)
+                        ON CONFLICT(event_id, archive_url) DO NOTHING RETURNING *""",
+                    (items),
+                )
+            except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+                print("ARCHIVE: Could not complete operation:", e)
+            else:
+                print("Got Archive List")
