@@ -1,15 +1,7 @@
-"""Functions for parsing HTML.
-
-This module provides:
-- get_all_links: Get links from page that match a given pattern.
-- get_page_title: Return title from given page.
-- get_event_date: Return the event date from the given string.
-- get_event_day: Get day of week for a provided date.
-"""
+"""Functions for parsing HTML."""
 
 import re
 
-import ftfy
 from bs4 import BeautifulSoup as bs4
 
 
@@ -22,7 +14,7 @@ async def get_clean_links(soup: bs4, pattern: str) -> list[str]:
     return [
         {
             "url": re.sub(pattern, "", link["href"]),
-            "text": ftfy.fix_text(link.text.strip()),
+            "text": link.text.strip(),
         }
         for link in soup.find_all("a", href=re.compile(pattern))
     ]

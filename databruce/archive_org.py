@@ -1,14 +1,11 @@
 import psycopg
-from dotenv import load_dotenv
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from tools.scraping import scraper
 
-load_dotenv()
-
 
 async def get_list_from_archive(pool: AsyncConnectionPool) -> None:
-    """b,."""
+    """Get all items from the Radio Nowhere collection and insert if missing."""
     response = await scraper.get(
         "https://archive.org/advancedsearch.php?q=collection%3A%22radionowhere%22&fl[]=identifier&fl[]=databruce_id&sort[]=&sort[]=&sort[]=&rows=2000&page=1&output=json",
     )

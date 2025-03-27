@@ -26,8 +26,6 @@ async def song_snippet_count(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "songs" SET num_plays_snippet = 0;
-
                 UPDATE "songs"
                 SET
                     num_plays_snippet = t.count
@@ -63,9 +61,9 @@ async def song_opener_closer_count(pool: AsyncConnectionPool) -> None:
                         FROM (
                             SELECT
                             s.song_id,
-                            SUM(CASE WHEN s.position IN ('Show Opener')
+                            SUM(CASE WHEN s.position = 'Show Opener'
                                 THEN 1 ELSE 0 END) AS opener_count,
-                            SUM(CASE WHEN s.position IN ('Show Closer')
+                            SUM(CASE WHEN s.position = 'Show Closer'
                                 THEN 1 ELSE 0 END) AS closer_count
                         FROM "setlists" s
                         LEFT JOIN "events" e USING (event_id)

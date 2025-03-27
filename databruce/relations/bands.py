@@ -1,32 +1,32 @@
-"""Functions to get a list of people that have appeared with Bruce."""
+"""Functions to handle the Relations list of Bands."""
 
 import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 
-async def update_relations(pool: AsyncConnectionPool) -> None:
-    """Get a list of all the people who have been on stage with Bruce."""
+async def update_bands(pool: AsyncConnectionPool) -> None:
+    """Get a list of all the bands that Bruce has either played or recorded with."""
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         try:
             await cur.execute(
                 """
-                UPDATE "relations" SET appearances = 0;
+                UPDATE "bands" SET appearances = 0;
 
-                UPDATE "relations"
+                UPDATE "bands"
                 SET
                     appearances=t.num
                 FROM (
                     SELECT
-                        relation_id,
+                        artist,
                     count(distinct event_id) AS num
-                    FROM "onstage"
-                GROUP BY relation_id
+                    FROM "events"
+                GROUP BY artist
                 ) t
-                WHERE "relations".id=t.relation_id;
+                WHERE "bands".id=t.artist;
                 """,
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
         else:
-            print("Got Relations")
+            print("Got Bands")

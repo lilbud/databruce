@@ -188,7 +188,7 @@ async def get_song_info(
     """Get info about the provided song."""
     song_id = ""
 
-    if type(seq_song) == Tag:
+    if isinstance(seq_song, Tag):
         song_id = await song_id_corrector(event_id, seq_song["href"], cur)
 
     segue = await is_song_segue(sequence.index(seq_song), len(sequence))

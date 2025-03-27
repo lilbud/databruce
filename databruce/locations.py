@@ -14,7 +14,7 @@ async def update_cities(cur: psycopg.AsyncCursor) -> None:
     try:
         await cur.execute(
             """
-            UPDATE "cities" SET num_events=0, first_played=NULL, last_played=NULL;
+            UPDATE "cities" SET first_played=NULL, last_played=NULL;
 
             UPDATE "cities"
             SET
@@ -39,6 +39,8 @@ async def update_cities(cur: psycopg.AsyncCursor) -> None:
 
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("CITIES: Could not complete operation:", e)
+    else:
+        print("Updated CITIES with info from VENUES")
 
 
 async def update_states(cur: psycopg.AsyncCursor) -> None:
@@ -46,7 +48,7 @@ async def update_states(cur: psycopg.AsyncCursor) -> None:
     try:
         await cur.execute(
             """
-            UPDATE "states" SET num_events = 0, first_played=NULL, last_played=NULL;
+            UPDATE "states" SET first_played=NULL, last_played=NULL;
 
             UPDATE "states"
             SET
@@ -71,6 +73,8 @@ async def update_states(cur: psycopg.AsyncCursor) -> None:
 
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("Could not complete operation:", e)
+    else:
+        print("Updated STATES with info from VENUES")
 
 
 async def update_countries(cur: psycopg.AsyncCursor) -> None:
@@ -78,7 +82,7 @@ async def update_countries(cur: psycopg.AsyncCursor) -> None:
     try:
         await cur.execute(
             """
-            UPDATE "countries" SET num_events = 0, first_played=NULL, last_played=NULL;
+            UPDATE "countries" SET first_played=NULL, last_played=NULL;
 
             UPDATE "countries"
             SET
@@ -103,6 +107,8 @@ async def update_countries(cur: psycopg.AsyncCursor) -> None:
 
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("Could not complete operation:", e)
+    else:
+        print("Updated COUNTRIES with info from VENUES")
 
 
 async def update_continents(cur: psycopg.AsyncCursor) -> None:
@@ -110,8 +116,6 @@ async def update_continents(cur: psycopg.AsyncCursor) -> None:
     try:
         await cur.execute(
             """
-            UPDATE "continents" SET num_events = 0;
-
             UPDATE "continents"
             SET
                 num_events = t.num
@@ -129,6 +133,8 @@ async def update_continents(cur: psycopg.AsyncCursor) -> None:
 
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("Could not complete operation:", e)
+    else:
+        print("Updated CONTINENTS with info from VENUES")
 
 
 async def update_locations(pool: AsyncConnectionPool) -> None:

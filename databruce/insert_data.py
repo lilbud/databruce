@@ -17,7 +17,7 @@ from events import get_events
 from locations import update_locations
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
-from relations.relations import update_relations
+from relations import bands, relations
 from setlist.opener_closer import opener_closer
 from setlist.premiere_debut import debut_premiere
 from setlist.song_gap_calc import calc_song_gap
@@ -74,7 +74,8 @@ async def update_existing(pool: AsyncConnectionPool) -> None:
     await get_new_setlists(pool)
     await update_venue_count(pool)
     await update_song_info(pool)
-    await update_relations(pool)
+    await relations.update_relations(pool)
+    await bands.update_bands(pool)
 
 
 async def update_stats(pool: AsyncConnectionPool) -> None:
@@ -92,7 +93,6 @@ async def main(pool: AsyncConnectionPool) -> None:
         await update_get_new(pool)
         await update_existing(pool)
         await update_stats(pool)
-
         # async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         #     await scrape_event_page(
         #         "/gig:2024-11-22-rogers-arena-vancouver-bc",

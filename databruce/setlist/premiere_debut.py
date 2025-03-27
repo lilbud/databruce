@@ -9,29 +9,30 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "setlists" SET debut = false, premiere=false;
-
-                UPDATE "setlists"
+                UPDATE
+                    "setlists"
                 SET
-                    debut=true
-                FROM (
+                    debut = CASE
+                        WHEN id = ANY (t.debuts) THEN true
+                        ELSE FALSE
+                    END,
+                    premiere = CASE
+                        WHEN id = t.premiere THEN TRUE
+                        ELSE FALSE
+                    END
+                FROM
+                (
                     SELECT
-                            *
-                    FROM "premiere_debut"
+                        debuts,
+                        premiere
+                    FROM
+                    premiere_debut
                 ) t
-                WHERE "setlists".id = ANY(t.debuts);
-
-                UPDATE "setlists"
-                SET
-                    premiere=true
-                FROM (
-                    SELECT
-                            *
-                    FROM "premiere_debut"
-                ) t
-                WHERE "setlists".id = t.premiere;
+                WHERE id = t.premiere OR id = ANY (t.debuts)
                 """,
             )
 
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
+        else:
+            print("Got premiere/debut stats")

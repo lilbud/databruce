@@ -31,6 +31,8 @@ async def update_tour_runs(pool: AsyncConnectionPool) -> None:
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("TOURS: Could not complete operation:", e)
+        else:
+            print("Updated TOUR_RUNS with info from EVENTS")
 
 
 async def update_tours(pool: AsyncConnectionPool) -> None:
@@ -39,7 +41,7 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "tours" SET first_show=NULL, last_show=NULL, num_songs=0, num_shows=0, num_legs=0;
+                UPDATE "tours" SET first_show=NULL, last_show=NULL;
 
                 UPDATE "tours"
                     SET

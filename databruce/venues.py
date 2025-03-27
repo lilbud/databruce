@@ -126,6 +126,8 @@ async def update_venue_count(pool: AsyncConnectionPool) -> None:
 
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
+        else:
+            print("Updated VENUES with count of events")
 
 
 async def venue_name_fix(venue_name: str) -> str:

@@ -9,15 +9,7 @@ import secrets
 from pathlib import Path
 
 import httpx
-
-
-async def get_random_user_agent() -> str:
-    """Return a random user-agent string from the 'user-agents.txt' file.
-
-    'user-agents.txt' is from https://github.com/sushil-rgb/AmazonBuddy
-    """
-    with Path.open(Path(Path(__file__).parent, "user-agents.txt")) as user_agents:
-        return secrets.choice(user_agents.read().splitlines())
+from user_agent import generate_user_agent
 
 
 async def get(url: str) -> httpx.Response:
@@ -27,7 +19,7 @@ async def get(url: str) -> httpx.Response:
             response = await client.get(
                 url,
                 headers={
-                    "User-Agent": await get_random_user_agent(),
+                    "User-Agent": generate_user_agent(),
                     "Cookie": "wikidot_token7=0",
                 },
                 follow_redirects=True,
@@ -46,7 +38,7 @@ async def post(category_id: str) -> dict:
             response = await client.post(
                 "http://brucebase.wikidot.com/ajax-module-connector.php",
                 headers={
-                    "User-Agent": await get_random_user_agent(),
+                    "User-Agent": generate_user_agent(),
                     "Cookie": "wikidot_token7=0",
                 },
                 data={
