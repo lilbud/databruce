@@ -6,3 +6,4 @@ titlecase
 python-dotenv
 psycopg_pool
 lxml
+user-agent
