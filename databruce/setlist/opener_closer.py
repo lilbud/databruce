@@ -8,7 +8,9 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         try:
             await cur.execute(
-                """UPDATE "setlists"
+                """
+                UPDATE "setlists" SET position = NULL;
+                UPDATE "setlists"
                     SET
                         position = t.position
                     FROM (
