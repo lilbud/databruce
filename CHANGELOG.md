@@ -34,3 +34,7 @@
     - Added event run tracking. "Runs" are events by the same act at the same venue on different days. Just another stat that might be useful for some. Especially when it comes to getting a list of songs he played during a run instead of just by tour.
 - 2024-12-13:
     - added release notes to setlist notes. Basically a note for when a song was included on a retail audio/video release. Also cleaned up the SQL behind it a bit.
+- 2025-04-01:
+	- added instrument notes to the Devils and Dust shows. He'd rotate around between different keyboards and guitars from song to song.
+- 2025-04-02:
+	- added proper set structure to 1992/93 shows. Wasn't sure if he actually took a set break during this tour or not. Eventually found confirmation in Backstreets magazine that there was a 30min intermission halfway through the show (usually after Roll of the Dice).
