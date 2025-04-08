@@ -28,7 +28,7 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
                     FROM
                     premiere_debut
                 ) t
-                WHERE id = t.premiere OR id = ANY (t.debuts)
+                WHERE id = t.premiere OR id = ANY(t.debuts)
                 """,
             )
 

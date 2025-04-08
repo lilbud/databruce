@@ -10,23 +10,27 @@ async def update_tour_runs(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE runs SET num_shows = NULL, num_songs = NULL;
+                UPDATE "runs" SET first_event = NULL, last_event = NULL;
 
                 UPDATE "runs"
                 SET
-                    num_songs=t.song_num,
-                    num_shows=t.event_num
+                    first_event = t.first,
+                    last_event = t.last,
+                    num_shows = t.event_count,
+                    num_songs = t.song_count
                 FROM (
                     SELECT
-                        r.id,
-                        count(distinct e.event_id) AS event_num,
-                        count(distinct s.song_id) AS song_num
-                    FROM runs r
-                    LEFT JOIN events e ON e.run = r.id
-                    LEFT JOIN setlists s ON s.event_id = e.event_id
-                    GROUP BY r.id
+                        e.run AS id,
+                        MIN(e.event_id) AS first,
+                        MAX(e.event_id) AS last,
+                        COUNT(DISTINCT e.event_id) AS event_count,
+                        COUNT(DISTINCT s.song_id) AS song_count
+                    FROM events e
+                    LEFT JOIN setlists s USING(event_id)
+                    WHERE e.run IS NOT NULL
+                    GROUP BY e.run
                 ) t
-                WHERE "runs".id=t.id;
+                WHERE "runs"."id" = t.id
                 """,
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
@@ -53,8 +57,8 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
                     FROM (
                         SELECT
                             e.tour_id,
-                            MIN(e.event_id) AS first,
-                            MAX(e.event_id) AS last,
+                            MIN(s.event_id) AS first,
+                            MAX(s.event_id) AS last,
                             COUNT(DISTINCT(s.song_id)) AS song_count,
                             COUNT(DISTINCT(e.event_id)) AS event_count,
                             COUNT(DISTINCT(e.tour_leg)) AS leg_count
@@ -67,30 +71,6 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
                     ) t
                     WHERE "tours"."id" = t.tour_id""",
             )
-
-            # rehearsals specific
-            await cur.execute(
-                """UPDATE "tours"
-                    SET
-                        first_show=t.first,
-                        last_show=t.last,
-                        num_songs=t.song_count,
-                        num_shows=t.event_count
-                    FROM (
-                        SELECT
-                            e.tour_id,
-                            MIN(e.event_id) AS first,
-                            MAX(e.event_id) AS last,
-                            COUNT(DISTINCT(s.song_id)) AS song_count,
-                            COUNT(DISTINCT(e.event_id)) AS event_count
-                        FROM "events" e
-                        LEFT JOIN "setlists" s USING(event_id)
-                        WHERE e.tour_id = '43'
-                        GROUP BY e.tour_id
-                    ) t
-                    WHERE "tours"."id" = t.tour_id""",
-            )
-
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("TOURS: Could not complete operation:", e)
 

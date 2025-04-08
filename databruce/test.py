@@ -2,43 +2,61 @@
 
 import asyncio
 import re
+import time
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
+import slugify
 from database.db import load_db
 from dotenv import load_dotenv
+from titlecase import titlecase
+from tools.parsing import html_parser
 
 load_dotenv()
 from bs4 import BeautifulSoup as bs4
+from tools.scraping import scraper
 
-# def get_setlist_id(event: str, song: str, cur: psycopg.Cursor):
-#     id = cur.execute(
-#         """SELECT id FROM setlists WHERE event_id = %s AND song_id = %s
-#         AND set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Rehearsal'])""",
-#         (event, song),
-#     ).fetchone()
-#     try:
-#         return id["id"]
-#     except TypeError:
-#         print(event, song)
 
-with load_db() as conn:
-    cur = conn.cursor()
-    venues = []
+async def main():
+    response = await scraper.get(
+        "http://brucebase.wikidot.com/ott:arabian-nights",
+    )
 
-    events = cur.execute(
-        """SELECT brucebase_url FROM events WHERE venue_id IS NULL""",
-    ).fetchall()
+    if response:
+        soup = bs4(response.text, "lxml")
 
-    for e in events:
-        url = re.sub(r"^\/.*\:\d{4}-\d{2}-\d{2}[a-z]?-", "", e["brucebase_url"])
+        table = soup.select_one("#page-content > table:nth-child(2)")
+        description = soup.select_one("#page-content > p:nth-child(3)")
 
-        v_id = cur.execute(
-            """SELECT id FROM venues WHERE brucebase_url = %s""",
-            (url,),
-        ).fetchone()
+        df = pd.read_html(str(table))[0]
+        df.columns = ["title", "time", "release"]
 
-        if v_id:
-            cur.execute(
-                """UPDATE events SET venue_id = %s WHERE brucebase_url = %s""",
-                (v_id["id"], e["brucebase_url"]),
-            )
+        for i in df.itertuples():
+            print(i.release)
+
+
+async def ott_key():
+    response = await scraper.get("http://brucebase.wikidot.com/stats:on-the-tracks-key")
+
+    soup = bs4(response.text, "lxml")
+
+    table1 = soup.select_one("#page-content > table:nth-child(5)")
+    table2 = soup.select_one("#page-content > table:nth-child(7)")
+
+    df1 = pd.read_html(str(table1))[0]
+    df2 = pd.read_html(str(table2))[0]
+
+    df1.columns = ["key", "title", "label", "carrier"]
+    df2.columns = ["key", "title", "label", "carrier"]
+
+    full = pd.concat([df1, df2], ignore_index=True)
+
+    print(full)
+
+    full.to_csv("ott_key.csv")
+
+    # print(df2)
+
+
+asyncio.run(ott_key())

@@ -3,6 +3,7 @@
 import re
 
 import psycopg
+import slugify
 from bs4 import ResultSet, Tag
 from titlecase import titlecase
 
@@ -83,7 +84,7 @@ def clean_song_note(song_note: Tag) -> str:
     try:
         return re.sub(r"^[\s\(\)]|[\s\(\)]$", "", song_note.span.get_text())
     except AttributeError:
-        return ""
+        return None
 
 
 async def get_song_note(song: dict, segue: bool) -> str:  # noqa: FBT001
@@ -91,9 +92,12 @@ async def get_song_note(song: dict, segue: bool) -> str:  # noqa: FBT001
     if segue:
         return None
 
-    notes = [song["note"], titlecase(clean_song_note(song["link"]))]
+    try:
+        notes = [song["note"], titlecase(clean_song_note(song["link"]))]
 
-    return ", ".join(filter(None, notes))
+        return ", ".join(filter(None, notes))
+    except TypeError:
+        return None
 
 
 async def is_song_segue(i: int, list_size: int) -> bool:
@@ -186,10 +190,12 @@ async def get_song_info(
     event_id: str,
 ) -> list:
     """Get info about the provided song."""
-    song_id = ""
+    song_id = None
 
     if isinstance(seq_song, Tag):
         song_id = await song_id_corrector(event_id, seq_song["href"], cur)
+    else:
+        song_id = slugify.slugify(seq_song)
 
     segue = await is_song_segue(sequence.index(seq_song), len(sequence))
     song_note = await get_song_note(song, segue)

@@ -9,47 +9,47 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "setlists" SET position = NULL;
                 UPDATE "setlists"
-                    SET
-                        position = t.position
-                    FROM (
-                        with "min_max" AS (
-                        SELECT
-                            s.event_id,
-                            s.set_name,
-                            s.song_id,
-                            MIN(s.song_num::int) OVER
-                                (PARTITION BY s.event_id, s.set_name) AS opener_id,
-                            MAX(s.song_num::int) OVER
-                                (PARTITION BY s.event_id, s.set_name) AS closer_id
-                        FROM "setlists" s
-                        )
-                        SELECT
-                            m.event_id,
-                            (CASE
-                                WHEN m.set_name = 'Set 1' THEN 'Show' ELSE m.set_name
-                            END) || ' Opener' AS position,
-                            MIN(m.opener_id) AS id
-                        FROM "min_max" m
-                        WHERE m.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])
-                        GROUP BY event_id, set_name HAVING COUNT(m.song_id) > 1
-                        UNION ALL
-                        SELECT
-                            m.event_id,
-                            (CASE
-                                WHEN m.set_name = 'Show' THEN 'Main Set'
-                                WHEN m.set_name = 'Encore' THEN 'Show'
-                                ELSE m.set_name
-                            END) || ' Closer' AS position,
-                            MAX(m.closer_id) AS id
-                        FROM "min_max" m
-                        WHERE set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])
-                        GROUP BY event_id, set_name HAVING COUNT(m.song_id) > 1
-                        ORDER BY event_id, id ASC
-                    ) t
-                    WHERE "setlists"."song_num" = t.id AND
-                        "setlists"."event_id" = t.event_id AND "setlists".position IS NULL""",  # noqa: E501
+                SET
+                    position = t.position
+                FROM
+                (
+                with event_sets AS (
+                    SELECT
+                    s.event_id,
+                    array_agg(DISTINCT s.set_name) as sets
+                    FROM setlists s
+                    GROUP BY s.event_id
+                ),
+                "min_max" AS (
+                    SELECT
+                    s.id,
+                    s.event_id,
+                    s.set_name,
+                    MIN(s.id) OVER (PARTITION BY s.event_id, s.set_name) AS opener,
+                    MAX(s.id) OVER (PARTITION BY s.event_id, s.set_name) AS closer
+                    FROM
+                    "setlists" s
+                    WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])
+                )
+                SELECT
+                    s.id,
+                    s.event_id,
+                    s.set_name,
+                    CASE
+                    WHEN s.id = m.opener AND s.set_name = ANY(ARRAY['Show', 'Set 1']) THEN 'Show Opener'
+                    WHEN s.id = m.opener AND s.set_name <> ANY(ARRAY['Show', 'Set 1']) THEN s.set_name || ' Opener'
+                    WHEN s.id = m.closer AND 'Encore' = ANY(e.sets) AND s.set_name = ANY(ARRAY['Show', 'Set 2']) THEN 'Main Set Closer'
+                    WHEN s.id = m.closer AND s.song_num = MAX(s.song_num) OVER (PARTITION BY s.event_id) THEN 'Show Closer'
+                    WHEN s.id = m.closer THEN s.set_name || ' Closer'
+                    ELSE NULL
+                    END as position
+                FROM setlists s
+                LEFT JOIN min_max m USING (id)
+                LEFT JOIN event_sets e ON e.event_id = s.event_id
+                ORDER BY s.event_id, s.song_num
+                ) t
+                WHERE "setlists"."id" = t.id""",  # noqa: E501
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)

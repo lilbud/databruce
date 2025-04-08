@@ -78,8 +78,8 @@ async def tabview_handler(soup: bs4, event_url: str, cur: psycopg.Cursor) -> Non
         for index, tab in enumerate(nav.find_all("li")):
             tab_content = content.find("div", {"id": f"wiki-tab-0-{index}"})
             match tab.text.strip():
-                case "On Stage" | "In Studio":
-                    await on_stage.get_onstage(tab_content, event_url, cur)
+                # case "On Stage" | "In Studio":
+                #     await on_stage.get_onstage(tab_content, event_url, cur)
                 case "Setlist":
                     await setlist.get_setlist(tab_content, event_url, cur)
     except AttributeError:
