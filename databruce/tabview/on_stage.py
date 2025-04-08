@@ -3,6 +3,7 @@
 import re
 
 import psycopg
+import slugify
 from bs4 import Tag
 
 
@@ -36,11 +37,10 @@ async def get_relation_note(relation: Tag) -> str | None:
 
 async def generate_slug(name: str) -> str:
     """When brucebase_url is missing, make a fake url."""
-    slug = re.sub(r"\s+\(.*\)$", "", name)
-    return slug.replace(" ", "-").lower()
+    return slugify.slugify(name)
 
 
-async def get_onstage(  # noqa: C901, PLR0912
+async def get_onstage(  # noqa: C901
     tab_contents: Tag,
     event_url: str,
     cur: psycopg.AsyncCursor,

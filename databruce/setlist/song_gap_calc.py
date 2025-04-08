@@ -5,7 +5,7 @@ from psycopg_pool import AsyncConnectionPool
 
 async def calc_song_gap(pool: AsyncConnectionPool) -> None:
     """Calculate the number of events between songs being played."""
-    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+    async with pool.connection() as conn, conn.cursor() as cur:
         try:
             await cur.execute(
                 """

@@ -5,11 +5,13 @@ import re
 import time
 from pathlib import Path
 
+import ftfy
 import numpy as np
 import pandas as pd
 import slugify
 from database.db import load_db
 from dotenv import load_dotenv
+from psycopg.rows import dict_row
 from titlecase import titlecase
 from tools.parsing import html_parser
 
@@ -20,43 +22,17 @@ from tools.scraping import scraper
 
 async def main():
     response = await scraper.get(
-        "http://brucebase.wikidot.com/ott:arabian-nights",
+        "http://brucebase.wikidot.com/interview:2020-04-08-siriusxm-studio-new-york-city-ny",
     )
 
     if response:
         soup = bs4(response.text, "lxml")
 
-        table = soup.select_one("#page-content > table:nth-child(2)")
-        description = soup.select_one("#page-content > p:nth-child(3)")
+        title = re.search(r"(.*)\s-\sBrucebase Wiki", soup.title.get_text())[1]
+        venue_url = soup.select_one(
+            "#page-content > p:nth-child(3) > a:nth-child(2)",
+        ).get("href")
+        event_date = re.search(r"\d{4}-\d{2}-\d{2}", title)[0]
+        venue_id = re.sub("^/.*:", "", venue_url)
 
-        df = pd.read_html(str(table))[0]
-        df.columns = ["title", "time", "release"]
-
-        for i in df.itertuples():
-            print(i.release)
-
-
-async def ott_key():
-    response = await scraper.get("http://brucebase.wikidot.com/stats:on-the-tracks-key")
-
-    soup = bs4(response.text, "lxml")
-
-    table1 = soup.select_one("#page-content > table:nth-child(5)")
-    table2 = soup.select_one("#page-content > table:nth-child(7)")
-
-    df1 = pd.read_html(str(table1))[0]
-    df2 = pd.read_html(str(table2))[0]
-
-    df1.columns = ["key", "title", "label", "carrier"]
-    df2.columns = ["key", "title", "label", "carrier"]
-
-    full = pd.concat([df1, df2], ignore_index=True)
-
-    print(full)
-
-    full.to_csv("ott_key.csv")
-
-    # print(df2)
-
-
-asyncio.run(ott_key())
+        print(venue_id)

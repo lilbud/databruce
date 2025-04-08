@@ -35,8 +35,8 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                         s.brucebase_url,
                         MIN(s1.event_id) FILTER (WHERE s1.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS first,
                         MAX(s1.event_id) FILTER (WHERE s1.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS last,
-                        COUNT(s1.event_id) FILTER(WHERE s1.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS public_count,
-                        COUNT(s1.event_id) FILTER(WHERE s1.set_name = ANY(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS private_count,
+                        COUNT(distinct s1.id) FILTER(WHERE s1.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS public_count,
+                        COUNT(distinct s1.id) FILTER(WHERE s1.set_name = ANY(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS private_count,
                         COUNT(distinct s2.event_id) AS snippet_count,
                         COUNT(*) FILTER (WHERE s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
                         COUNT(*) FILTER (WHERE s1.position = 'Show Closer' AND e.setlist_certainty = 'Confirmed') AS closer_count

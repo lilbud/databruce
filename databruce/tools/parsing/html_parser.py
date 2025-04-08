@@ -5,12 +5,13 @@ import re
 from bs4 import BeautifulSoup as bs4
 
 
-async def get_clean_links(soup: bs4, pattern: str) -> list[str]:
-    """Get links from a page that match pattern, strip tag from start.
+async def strip_tag(url: str) -> str:
+    """Remove category tag from start of Brucebase URL."""
+    return re.sub("^/.*:", "", url)
 
-    Many of the tables use the brucebase link as the PK, though with the
-    tag stripped from the start (/song:)
-    """
+
+async def get_clean_links(soup: bs4, pattern: str) -> list[str]:
+    """Get links from a page that match pattern, strip tag from start."""
     return [
         {
             "url": re.sub(pattern, "", link["href"]),
@@ -28,33 +29,33 @@ async def get_all_links(soup: bs4, pattern: str) -> list[dict[str, str]]:
     ]
 
 
-async def get_page_title(soup: bs4) -> str:
+async def get_page_title(soup: bs4) -> str | None:
     """Return title from given page."""
     try:
         return soup.find("div", id="page-title").text.strip()
     except AttributeError:
-        return "title"
+        return None
 
 
-async def get_venue_url(soup: bs4) -> str:
+async def get_venue_url(soup: bs4) -> str | None:
     """Return venue url from given page."""
     try:
         return soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", "")
     except TypeError:
-        return "venue"
+        return None
 
 
-async def get_show_descriptor_from_title(title: str) -> str:
+async def get_show_descriptor_from_title(title: str) -> str | None:
     """Return the descriptor in the page title i.e (Early/Late)."""
     try:
-        return re.search(r"\((\S+)\)$", title.strip()).group(1)
+        return re.search(r"\((.*)\)$", title.strip()).group(1)
     except AttributeError:
-        return ""
+        return None
 
 
-async def get_event_date(event_url: str) -> str:
+async def get_event_date(event_url: str) -> str | None:
     """Return the event date from the given string."""
     try:
         return re.search(r"\d{4}-\d{2}-\d{2}", event_url)[0]
     except AttributeError:
-        return ""
+        return None

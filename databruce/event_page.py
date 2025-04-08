@@ -78,15 +78,15 @@ async def tabview_handler(soup: bs4, event_url: str, cur: psycopg.Cursor) -> Non
         for index, tab in enumerate(nav.find_all("li")):
             tab_content = content.find("div", {"id": f"wiki-tab-0-{index}"})
             match tab.text.strip():
-                # case "On Stage" | "In Studio":
-                #     await on_stage.get_onstage(tab_content, event_url, cur)
+                case "On Stage" | "In Studio":
+                    await on_stage.get_onstage(tab_content, event_url, cur)
                 case "Setlist":
                     await setlist.get_setlist(tab_content, event_url, cur)
     except AttributeError:
         return
 
 
-async def get_event_type(event_url: str) -> str:
+async def get_event_type(event_url: str) -> str | None:
     """Get event_type from event_url."""
     event_types = {
         "/gig:": "Concert",
@@ -97,10 +97,10 @@ async def get_event_type(event_url: str) -> str:
         "/recording:": "Recording",
     }
 
-    return event_types.get(re.findall("(/.*:)", event_url)[0], "")
+    return event_types.get(re.findall("(/.*:)", event_url)[0], None)
 
 
-async def get_venue_id(venue_url: str, cur: psycopg.AsyncCursor) -> int:
+async def get_venue_id(venue_url: str, cur: psycopg.AsyncCursor) -> int | None:
     """Get ID by venue_url."""
     res = await cur.execute(
         """SELECT id FROM venues WHERE brucebase_url = %s""",
@@ -129,6 +129,7 @@ async def scrape_event_page(
         event_date = await html_parser.get_event_date(event_url)
 
         venue_url = await html_parser.get_venue_url(soup)
+
         venue_id = await get_venue_id(venue_url, cur)
 
         show = await html_parser.get_show_descriptor_from_title(page_title)

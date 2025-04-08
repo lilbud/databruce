@@ -117,7 +117,7 @@ async def update_venue_count(pool: AsyncConnectionPool) -> None:
                         MAX(e.event_id) AS last_played
                     FROM "venues" v
                     LEFT JOIN "events" e ON e.venue_id = v.id
-                    WHERE e.event_date <= NOW()
+                    WHERE e.event_id IS NOT NULL
                     GROUP BY v.id
                     ORDER BY v.id
                     ) t
