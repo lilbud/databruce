@@ -7,3 +7,4 @@ python-dotenv
 psycopg_pool
 lxml
 user-agent
+python-slugify
