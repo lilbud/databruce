@@ -3,7 +3,7 @@
 import re
 
 import psycopg
-import slugify
+from slugify import slugify
 from bs4 import Tag
 
 
