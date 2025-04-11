@@ -35,11 +35,6 @@ async def get_relation_note(relation: Tag) -> str | None:
         return None
 
 
-async def generate_slug(name: str) -> str:
-    """When brucebase_url is missing, make a fake url."""
-    return slugify.slugify(name)
-
-
 async def get_onstage(  # noqa: C901
     tab_contents: Tag,
     event_url: str,
@@ -71,7 +66,7 @@ async def get_onstage(  # noqa: C901
                         current["relation_id"] = await get_relation_id(m.a["href"])
                         current["band_id"] = await get_relation_id(link.a["href"])
                     except TypeError:
-                        current["relation_id"] = await generate_slug(m.text.strip())
+                        current["relation_id"] = slugify.slugify(m.text.strip())
                         current["band_id"] = None
 
                     if current not in results["onstage"]:
@@ -88,7 +83,7 @@ async def get_onstage(  # noqa: C901
                 try:
                     current["relation_id"] = await get_relation_id(link.a["href"])
                 except TypeError:
-                    current["relation_id"] = await generate_slug(link.text.strip())
+                    current["relation_id"] = slugify.slugify(link.text.strip())
 
                 if current not in results["onstage"]:
                     results["onstage"].append(current)

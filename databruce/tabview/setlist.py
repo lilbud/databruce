@@ -182,6 +182,14 @@ async def parse_setlists(
     return rearrange_sets(sets, proper_set_order)
 
 
+async def get_song_id(url: str, cur: psycopg.AsyncCursor) -> int:
+    res = await cur.execute("""SELECT id FROM songs WHERE brucebase_url = %s""", (url,))
+
+    song = await res.fetchone()
+
+    return song["id"]
+
+
 async def get_song_info(
     seq_song: Tag | str,
     song: Tag,
@@ -193,9 +201,8 @@ async def get_song_info(
     song_id = None
 
     if isinstance(seq_song, Tag):
-        song_id = await song_id_corrector(event_id, seq_song["href"], cur)
-    else:
-        song_id = slugify.slugify(seq_song)
+        song_url = await song_id_corrector(event_id, seq_song["href"], cur)
+        song_id = await get_song_id(song_url)
 
     segue = await is_song_segue(sequence.index(seq_song), len(sequence))
     song_note = await get_song_note(song, segue)
