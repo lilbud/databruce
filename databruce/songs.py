@@ -41,8 +41,8 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                         COUNT(*) FILTER (WHERE s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
                         COUNT(*) FILTER (WHERE s1.position = 'Show Closer' AND e.setlist_certainty = 'Confirmed') AS closer_count
                     FROM songs s
-                    LEFT JOIN setlists s1 ON s1.song_id = s.brucebase_url
-                    LEFT JOIN snippets s2 ON s2.snippet_id = s.brucebase_url
+                    LEFT JOIN setlists s1 ON s1.song_id = s.id
+                    LEFT JOIN snippets s2 ON s2.snippet_id = s.id
                     LEFT JOIN events e ON e.event_id = s1.event_id
                     GROUP BY s.id
                 ) t
