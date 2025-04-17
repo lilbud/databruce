@@ -41,3 +41,4 @@
   - added proper set structure to 1992/93 shows. Wasn't sure if he actually took a set break during this tour or not. Eventually found confirmation in Backstreets magazine that there was a 30min intermission halfway through the show (usually after Roll of the Dice).
 - 2025-04-16:
   - redid archive_links table so that the "created" time is the date I actually added it to archive.org. Had to slightly update the archive function to account.
+  - fix songs insert not matching table anymore. I added the `/song:` to all the song urls but never changed that in the insert command.

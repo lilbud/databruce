@@ -179,16 +179,16 @@ async def get_songs(pool: AsyncConnectionPool) -> None:
 
     # duplicate song ids which redirect
     ignore = [
-        "born-in-the-usa",
-        "land-of-1-000-dances",
-        "land-of-1000-dances",
-        "deportee-plane-wreck-at-los-gatos",
+        "/song:born-in-the-usa",
+        "/song:land-of-1-000-dances",
+        "/song:land-of-1000-dances",
+        "/song:deportee-plane-wreck-at-los-gatos",
     ]
 
     if response:
         soup = bs4(response, "lxml")
 
-        songs = await html_parser.get_clean_links(soup, "/song:")
+        songs = await html_parser.get_all_links(soup, "/song:")
 
         links = [
             [link["url"], link["text"]] for link in songs if link["url"] not in ignore

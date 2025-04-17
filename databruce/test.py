@@ -22,27 +22,26 @@ load_dotenv()
 
 
 async def main():
-    response = await scraper.get(
-        "https://archive.org/advancedsearch.php?q=collection%3A%22radionowhere%22&fl[]=identifier&fl[]=databruce_id&fl[]=publicdate&sort[]=publicdate+asc&sort[]=&sort[]=&rows=2000&page=1&output=json",
-    )
+    response = await scraper.post("18072044")
+
+    # duplicate song ids which redirect
+    ignore = [
+        "/song:born-in-the-usa",
+        "/song:land-of-1-000-dances",
+        "/song:land-of-1000-dances",
+        "/song:deportee-plane-wreck-at-los-gatos",
+    ]
 
     if response:
-        with load_db() as conn:
-            cur = conn.cursor()
+        soup = bs4(response, "lxml")
 
-            for item in response.json()["response"]["docs"]:
-                event_id = item["databruce_id"]
-                created_at = datetime.datetime.strptime(  # noqa: DTZ007
-                    item["publicdate"],
-                    "%Y-%m-%dT%H:%M:%SZ",
-                )
-                url = f"https://archive.org/details/{item['identifier']}"
+        songs = await html_parser.get_all_links(soup, "/song:")
 
-                cur.execute(
-                    """INSERT INTO archive_links (event_id, archive_url, created_at)
-                    VALUES (%s, %s, %s) ON CONFLICT (event_id, archive_url) DO NOTHING""",
-                    (event_id, url, created_at),
-                )
+        links = [
+            [link["url"], link["text"]] for link in songs if link["url"] not in ignore
+        ]
+
+        print(links)
 
 
 asyncio.run(main())
