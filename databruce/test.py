@@ -1,6 +1,7 @@
 """File for testing random code/functions/ideas."""
 
 import asyncio
+import datetime
 import re
 import time
 from pathlib import Path
@@ -9,30 +10,39 @@ import ftfy
 import numpy as np
 import pandas as pd
 import slugify
+from bs4 import BeautifulSoup as bs4
 from database.db import load_db
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
 from titlecase import titlecase
 from tools.parsing import html_parser
+from tools.scraping import scraper
 
 load_dotenv()
-from bs4 import BeautifulSoup as bs4
-from tools.scraping import scraper
 
 
 async def main():
     response = await scraper.get(
-        "http://brucebase.wikidot.com/interview:2020-04-08-siriusxm-studio-new-york-city-ny",
+        "https://archive.org/advancedsearch.php?q=collection%3A%22radionowhere%22&fl[]=identifier&fl[]=databruce_id&fl[]=publicdate&sort[]=publicdate+asc&sort[]=&sort[]=&rows=2000&page=1&output=json",
     )
 
     if response:
-        soup = bs4(response.text, "lxml")
+        with load_db() as conn:
+            cur = conn.cursor()
 
-        title = re.search(r"(.*)\s-\sBrucebase Wiki", soup.title.get_text())[1]
-        venue_url = soup.select_one(
-            "#page-content > p:nth-child(3) > a:nth-child(2)",
-        ).get("href")
-        event_date = re.search(r"\d{4}-\d{2}-\d{2}", title)[0]
-        venue_id = re.sub("^/.*:", "", venue_url)
+            for item in response.json()["response"]["docs"]:
+                event_id = item["databruce_id"]
+                created_at = datetime.datetime.strptime(  # noqa: DTZ007
+                    item["publicdate"],
+                    "%Y-%m-%dT%H:%M:%SZ",
+                )
+                url = f"https://archive.org/details/{item['identifier']}"
 
-        print(venue_id)
+                cur.execute(
+                    """INSERT INTO archive_links (event_id, archive_url, created_at)
+                    VALUES (%s, %s, %s) ON CONFLICT (event_id, archive_url) DO NOTHING""",
+                    (event_id, url, created_at),
+                )
+
+
+asyncio.run(main())

@@ -11,20 +11,27 @@ async def update_bands(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "bands" SET appearances = 0;
+                UPDATE "bands" SET appearances = 0, first_appearance=null, last_appearance=null;
 
                 UPDATE "bands"
                 SET
-                    appearances=t.num
-                FROM (
+                    appearances = t.num,
+                    first_appearance=t.first,
+                    last_appearance=t.last
+                FROM
+                (
                     SELECT
-                        artist,
+                    o.band_id AS artist,
+                        MIN(o.event_id) AS first,
+                        MAX(o.event_id) AS last,
                     count(distinct event_id) AS num
-                    FROM "events"
-                GROUP BY artist
+                    FROM
+                    "onstage" o
+                        GROUP BY o.band_id
                 ) t
-                WHERE "bands".id=t.artist;
-                """,
+                WHERE
+                "bands".id = t.artist;
+                """,  # noqa: E501
             )
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)

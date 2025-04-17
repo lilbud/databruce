@@ -18,7 +18,6 @@ from locations import update_locations
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from relations import bands, relations
-from setlist.opener_closer import opener_closer
 from setlist.premiere_debut import debut_premiere
 from setlist.song_gap_calc import calc_song_gap
 from songs import (
@@ -26,7 +25,7 @@ from songs import (
     update_song_info,
 )
 from tours import update_tour_runs, update_tours
-from venues import get_venues, update_venue_count
+from venues import update_venue_count
 
 current_datetime = datetime.datetime.now(tz=datetime.UTC)
 
@@ -57,7 +56,6 @@ async def get_new_setlists(pool: AsyncConnectionPool) -> None:
 async def update_get_new(pool: AsyncConnectionPool) -> None:
     """Pull new data from Brucebase and insert."""
     await get_songs(pool)
-    # await get_venues(pool)
     await get_events(pool)
     await get_covers(pool)
     await get_list_from_archive(pool)
@@ -79,7 +77,6 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
     await debut_premiere(pool)
     await calc_song_gap(pool)
     await update_song_info(pool)
-    # await opener_closer(pool)
 
 
 async def main(pool: AsyncConnectionPool) -> None:
