@@ -42,3 +42,5 @@
 - 2025-04-16:
   - redid archive_links table so that the "created" time is the date I actually added it to archive.org. Had to slightly update the archive function to account.
   - fix songs insert not matching table anymore. I added the `/song:` to all the song urls but never changed that in the insert command.
+- 2025-04-23:
+  - updated setlist notes so that they split on a semicolon, meaning several notes can be grouped in the song notes column.
