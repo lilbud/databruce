@@ -3,8 +3,42 @@
 import re
 
 import psycopg
-from slugify import slugify
 from bs4 import Tag
+from slugify import slugify
+
+
+def get_band_id(url: str, cur: psycopg.cursor) -> int:
+    """Get band id for a given band url."""
+    try:
+        res = cur.execute(
+            """SELECT id FROM bands WHERE brucebase_url = %s""",
+            (url,),
+        ).fetchone()
+
+        return res["id"]
+    except (TypeError, psycopg.OperationalError):
+        return None
+
+
+def get_relation_id(url: str, cur: psycopg.cursor) -> int:
+    """Get id for a given relation url."""
+    try:
+        res = cur.execute(
+            """SELECT id FROM relations WHERE brucebase_url = %s""",
+            (url,),
+        ).fetchone()
+
+        return res["id"]
+    except (TypeError, psycopg.OperationalError):
+        return None
+
+
+def get_note(item: Tag) -> str:
+    """Get note attached to an onstage li item."""
+    try:
+        return item.span.text.lower().strip("()")
+    except (TypeError, psycopg.OperationalError):
+        return None
 
 
 async def get_relation_id(
@@ -12,19 +46,14 @@ async def get_relation_id(
     cur: psycopg.AsyncCursor,
 ) -> int:
     """Return the relation_id for the given relation_url."""
-    url = re.sub("/relation:", "", relation_url)
-
     res = await cur.execute(
         """SELECT id FROM "relations" WHERE brucebase_url=%s""",
-        (url,),
+        (relation_url,),
     )
 
     relation = await res.fetchone()
 
-    try:
-        return relation["id"]
-    except (IndexError, TypeError):
-        return None
+    return relation["id"]
 
 
 async def get_relation_note(relation: Tag) -> str | None:
@@ -35,71 +64,49 @@ async def get_relation_note(relation: Tag) -> str | None:
         return None
 
 
-async def get_onstage(  # noqa: C901
+async def get_onstage(
     tab_contents: Tag,
-    event_url: str,
+    event_id: str,
     cur: psycopg.AsyncCursor,
 ) -> None:
     """Get a list of those on stage at a given event."""
-    results = {"onstage": []}
+    onstage = []
 
-    res = await cur.execute(
-        """SELECT event_id AS id FROM "events" WHERE brucebase_url=%s""",
-        (event_url,),
-    )
-
-    event_id = await res.fetchone()
-
-    for link_group in tab_contents.find_all("ul", recursive=False):
-        for link in link_group.find_all("li", recursive=False):
+    for subgroup in tab_contents.find_all("ul"):
+        for link in subgroup.find_all("li"):
             try:
-                for m in link.ul.find_all("li"):
-                    current = {
-                        "event_id": event_id["id"],
-                        "relation_id": "",
-                        "band_id": "",
-                        "note": await get_relation_note(link),
-                    }
+                for member in link.ul.find_all("li"):
+                    relation = get_relation_id(member.a["href"], cur)
+                    band = get_band_id(subgroup.a["href"], cur)
+                    note = get_note(member)
 
-                    # fix for when there is no url associated with a link
-                    try:
-                        current["relation_id"] = await get_relation_id(m.a["href"])
-                        current["band_id"] = await get_relation_id(link.a["href"])
-                    except TypeError:
-                        current["relation_id"] = slugify.slugify(m.text.strip())
-                        current["band_id"] = None
+                    if relation not in [k[0] for k in onstage]:
+                        onstage.append([relation, band, note])
 
-                    if current not in results["onstage"]:
-                        results["onstage"].append(current)
             except AttributeError:
-                current = {
-                    "event_id": event_id["id"],
-                    "relation_id": None,
-                    "band_id": None,
-                    "note": await get_relation_note(link),
-                }
+                relation = get_relation_id(link.a["href"], cur)
+                band = get_band_id(link.a["href"], cur)
+                note = get_note(link)
 
-                # fix for when there is no url associated with a link
-                try:
-                    current["relation_id"] = await get_relation_id(link.a["href"])
-                except TypeError:
-                    current["relation_id"] = slugify.slugify(link.text.strip())
+                if relation not in [k[0] for k in onstage]:
+                    onstage.append([relation, band, note])
 
-                if current not in results["onstage"]:
-                    results["onstage"].append(current)
-
-    for item in results["onstage"]:
-        item["relation_id"] = await get_relation_id(item["relation_id"], cur)
+    for item in onstage:
         try:
             await cur.execute(
                 """INSERT INTO "onstage"
                     (event_id, relation_id, band_id, note)
-                    VALUES (%(event_id)s, %(relation_id)s, %(band_id)s, %(note)s)
+                    VALUES (%(event)s, %(relation)s, %(band)s, %(note)s)
                     ON CONFLICT(event_id, relation_id) DO NOTHING""",
-                item,
+                {
+                    "event": event_id,
+                    "relation": item[0],
+                    "band": item[1],
+                    "note": item[2],
+                },
             )
 
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
 
-    print(f"onstage table updated for {event_url}")
+    print(f"onstage table updated for {event_id}")

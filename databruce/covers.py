@@ -7,13 +7,14 @@ from psycopg_pool import AsyncConnectionPool
 from tools.scraping import scraper
 
 
-async def get_covers(pool: AsyncConnectionPool) -> None:
+async def get_covers(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Grab a list of covers from my site and insert into database."""
     base_url = "https://raw.githubusercontent.com/lilbud/Bootleg_Covers/main"
 
     try:
         r = await scraper.get(
             "https://api.github.com/repos/lilbud/Bootleg_Covers/git/trees/main?recursive=1",
+            client,
         )
         response = r.json()
     except httpx.RequestError as exc:

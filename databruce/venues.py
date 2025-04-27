@@ -10,6 +10,7 @@ This module provides:
 import re
 
 import ftfy
+import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
 from psycopg.rows import dict_row
@@ -214,9 +215,9 @@ async def venue_parser(
     return venue_dict
 
 
-async def get_venues(pool: AsyncConnectionPool) -> None:
+async def get_venues(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Get a list of venues from Brucebase, and inserts into the database."""
-    response = await scraper.post("17778201")
+    response = await scraper.post("17778201", client)
 
     if response:
         soup = bs4(response, "lxml")

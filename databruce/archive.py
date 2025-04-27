@@ -1,15 +1,20 @@
 import datetime
 
+import httpx
 import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from tools.scraping import scraper
 
 
-async def get_list_from_archive(pool: AsyncConnectionPool) -> None:
+async def get_list_from_archive(
+    pool: AsyncConnectionPool,
+    client: httpx.AsyncClient,
+) -> None:
     """Get all items from the Radio Nowhere collection and insert if missing."""
     response = await scraper.get(
         "https://archive.org/advancedsearch.php?q=collection%3A%22radionowhere%22&fl[]=identifier&fl[]=databruce_id&fl[]=publicdate&sort[]=publicdate+asc&sort[]=&sort[]=&rows=2000&page=1&output=json",
+        client,
     )
 
     if response:
@@ -23,7 +28,7 @@ async def get_list_from_archive(pool: AsyncConnectionPool) -> None:
                     )
                     url = f"https://archive.org/details/{item['identifier']}"
 
-                    cur.execute(
+                    await cur.execute(
                         """INSERT INTO archive_links (event_id, archive_url, created_at)
                         VALUES (%s, %s, %s) ON CONFLICT (event_id, archive_url) DO NOTHING""",  # noqa: E501
                         (event_id, url, created_at),

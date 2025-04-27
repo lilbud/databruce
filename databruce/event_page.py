@@ -6,8 +6,10 @@ This module provides:
 - get_event_data: Scrapes page and gets data
 """
 
+import datetime
 import re
 
+import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
 from tabview import on_stage, setlist
@@ -35,11 +37,11 @@ async def get_event_id(
     except IndexError:
         res = await cur.execute(
             """SELECT
-                replace(event_date::text, '-', '') || '-' ||
+                to_char(event_date, 'YYYYMMDD') || '-' ||
                 lpad((count(event_id)+1)::text, 2, '0') AS id
             FROM "events"
             WHERE event_date = %s
-            GROUP BY event_date""",
+            GROUP BY event_id""",
             (event_date),
         )
 
@@ -47,13 +49,8 @@ async def get_event_id(
         return event["id"]
 
 
-async def certainty(
-    event_date: str,
-    event_id: str,
-    venue_id: str,
-    cur: psycopg.AsyncCursor,
-) -> None:
-    """Update event_certainty based on date and location."""
+async def event_certainty(event_date: str, venue_id: str) -> str:
+    """Determine event_certainty based on date and location url."""
     if "-00" in event_date:
         event_certainty = "Uncertain Date"
     elif "unknown" in venue_id:
@@ -63,13 +60,15 @@ async def certainty(
     else:
         event_certainty = "Confirmed"
 
-    await cur.execute(
-        """UPDATE "events" SET event_certainty=%s WHERE event_id=%s""",
-        (event_certainty, event_id),
-    )
+    return event_certainty
 
 
-async def tabview_handler(soup: bs4, event_url: str, cur: psycopg.Cursor) -> None:
+async def tabview_handler(
+    soup: bs4,
+    event_id: str,
+    event_url: str,
+    cur: psycopg.Cursor,
+) -> None:
     """Return the data in each tab of the tabview of an event page."""
     content = soup.find("div", {"class": "yui-content"})
     nav = soup.find("ul", {"class": "yui-nav"})
@@ -77,11 +76,12 @@ async def tabview_handler(soup: bs4, event_url: str, cur: psycopg.Cursor) -> Non
     try:
         for index, tab in enumerate(nav.find_all("li")):
             tab_content = content.find("div", {"id": f"wiki-tab-0-{index}"})
+
             match tab.text.strip():
                 case "On Stage" | "In Studio":
-                    await on_stage.get_onstage(tab_content, event_url, cur)
+                    await on_stage.get_onstage(tab_content, event_id, cur)
                 case "Setlist":
-                    await setlist.get_setlist(tab_content, event_url, cur)
+                    await setlist.get_setlist(tab_content, event_id, event_url, cur)
     except AttributeError:
         return
 
@@ -118,22 +118,22 @@ async def scrape_event_page(
     event_url: str,
     cur: psycopg.AsyncCursor,
     conn: psycopg.Connection,
+    client: httpx.AsyncClient,
     event_id: str = "",
 ) -> None:
     """Scrapes page and gets data, tabs are handled by other functions."""
-    response = await scraper.get(f"http://brucebase.wikidot.com{event_url}")
+    response = await scraper.get(f"http://brucebase.wikidot.com{event_url}", client)
 
     if response:
+        cur = conn.cursor()
         soup = bs4(response.text, "lxml")
         page_title = await html_parser.get_page_title(soup)
         event_date = await html_parser.get_event_date(event_url)
-
         venue_url = await html_parser.get_venue_url(soup)
-
         venue_id = await get_venue_id(venue_url, cur)
-
         show = await html_parser.get_show_descriptor_from_title(page_title)
 
+        # if event not provided, either get from database or generate new one
         if event_id == "":
             event_id = await get_event_id(
                 event_date,
@@ -141,30 +141,33 @@ async def scrape_event_page(
                 cur,
             )
 
+        # get event type from url
         event_type = await get_event_type(event_url)
 
         # check for unknown date or unknown in venue_id
-        await certainty(event_date, event_id, venue_url, cur)
+        certainty = await event_certainty(event_date, event_id, venue_url, cur)
 
         # handle page tags and insert into database
         await get_tags(soup, event_id, cur)
 
         # handle the different tabs on each page
-        await tabview_handler(soup, event_url, cur)
-        await conn.commit()
+        await tabview_handler(soup, event_id, event_url, cur)
 
         try:
             await cur.execute(
-                """UPDATE "events" SET venue_id=%s, early_late=%s, event_type=%s
-                    WHERE event_id=%s""",
-                (
-                    venue_id,
-                    show,
-                    event_type,
-                    event_id,
-                ),
+                """UPDATE "events" SET venue_id=%(venue)s, early_late=%(early)s,
+                        event_type=%(type)s, event_certainty=%(certainty)s
+                    WHERE event_id=%(event)s""",
+                {
+                    "venue": venue_id,
+                    "early": show,
+                    "type": event_type,
+                    "certainty": certainty,
+                    "event": event_id,
+                },
             )
 
-            await conn.commit()
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
+        else:
+            await conn.commit()

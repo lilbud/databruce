@@ -9,7 +9,8 @@ import asyncio
 import datetime
 import time
 
-from archive_org import get_list_from_archive
+import httpx
+from archive import get_list_from_archive
 from covers import get_covers
 from database import db
 from event_page import scrape_event_page
@@ -20,53 +21,51 @@ from psycopg_pool import AsyncConnectionPool
 from relations import bands, relations
 from setlist.premiere_debut import debut_premiere
 from setlist.song_gap_calc import calc_song_gap
-from songs import (
-    get_songs,
-    update_song_info,
-)
-from tours import update_tour_runs, update_tours
+from songs import get_songs, update_song_info
+from tools.scraping import scraper
+from tours import update_tour_legs, update_tour_runs, update_tours
 from venues import update_venue_count
 
 current_datetime = datetime.datetime.now(tz=datetime.UTC)
 
 
-async def get_new_setlists(pool: AsyncConnectionPool) -> None:
+async def get_new_setlists(
+    pool: AsyncConnectionPool,
+    client: httpx.AsyncClient,
+) -> None:
     """Check site for new setlists.
 
     Dates must be after the last item in SETLISTS, but before or equal to current date.
     """
-    event_id = current_datetime.strftime("%Y%m%d-01")
-
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         res = await cur.execute(
             """SELECT brucebase_url FROM "events" WHERE event_id >
-                        (SELECT MAX(event_id) FROM "setlists") AND event_id <= %(event)s
-                        AND NOT starts_with(brucebase_url, '/nogig:');
-                            """,
-            {"event": event_id},
+                (SELECT MAX(event_id) FROM "setlists") AND event_date <= now()
+                AND NOT starts_with(brucebase_url, '/nogig:');""",
         )
 
         events_to_get = await res.fetchall()
 
         if len(events_to_get) > 0:
             for row in events_to_get:
-                await scrape_event_page(row["brucebase_url"], cur, conn)
+                await scrape_event_page(row["brucebase_url"], cur, conn, client)
 
 
-async def update_get_new(pool: AsyncConnectionPool) -> None:
+async def update_get_new(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Pull new data from Brucebase and insert."""
-    await get_songs(pool)
-    await get_events(pool)
-    await get_covers(pool)
-    await get_list_from_archive(pool)
+    await get_songs(pool, client)
+    await get_events(pool, client)
+    await get_covers(pool, client)
+    await get_list_from_archive(pool, client)
 
 
-async def update_existing(pool: AsyncConnectionPool) -> None:
+async def update_existing(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Update existing counts in database."""
     await update_locations(pool)
     await update_tours(pool)
     await update_tour_runs(pool)
-    await get_new_setlists(pool)
+    await update_tour_legs(pool)
+    await get_new_setlists(pool, client)
     await update_venue_count(pool)
     await relations.update_relations(pool)
     await bands.update_bands(pool)
@@ -81,9 +80,11 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
 
 async def main(pool: AsyncConnectionPool) -> None:
     """Test."""
-    async with pool:
-        # await update_get_new(pool)
-        await update_existing(pool)
+    client = await scraper.get_client()
+
+    async with pool, client:
+        await update_get_new(pool, client)
+        await update_existing(pool, client)
         await update_stats(pool)
 
 

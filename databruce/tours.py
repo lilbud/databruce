@@ -5,6 +5,37 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 
+async def update_tour_legs(pool: AsyncConnectionPool) -> None:
+    """Update counts for tour legs."""
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        try:
+            await cur.execute(
+                """
+                UPDATE tour_legs SET first_show=null, last_show=null, num_shows=0;
+
+                UPDATE tour_legs
+                SET
+                    first_show=t.first,
+                    last_show=t.last,
+                    num_shows=t.num
+                FROM (
+                SELECT
+                    e.tour_leg AS id,
+                    MIN(e.event_id) AS first,
+                    MAX(e.event_id) AS last,
+                    COUNT(distinct(e.event_id)) AS num
+                FROM events e
+                GROUP BY e.tour_leg
+                ) t
+                WHERE "tour_legs"."id" = t.id
+                """,
+            )
+        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+            print("TOURS: Could not complete operation:", e)
+        else:
+            print("Updated TOUR_LEGS with info from EVENTS")
+
+
 async def update_tour_runs(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         try:

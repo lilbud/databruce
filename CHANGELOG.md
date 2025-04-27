@@ -44,3 +44,8 @@
   - fix songs insert not matching table anymore. I added the `/song:` to all the song urls but never changed that in the insert command.
 - 2025-04-23:
   - updated setlist notes so that they split on a semicolon, meaning several notes can be grouped in the song notes column.
+- 2025-04-27:
+  - Added "tour run" update command.
+  - redid the onstage get function, it was kind of a mess with different loops and stuff. Much simpler though should hopefully still handle all cases.
+  - moved httpx client to its own function. Realized that every single function was creating its own client instance, rather than just reusing the same one. Using one speeds up the connections as a new one isn't needed for every single request.
+  - removed some unneeded dates

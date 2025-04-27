@@ -27,19 +27,16 @@ async def check_event_tags(
 
 async def get_set_name_from_url(event_url: str) -> str:
     """Return the url 'category', which is the default set name."""
-    if "/gig:" in event_url:
-        return "Show"
-
     try:
         return titlecase(re.search(EVENT_TYPES, event_url).group(1))
     except re.error:
-        return None
+        return "Show"
 
 
 async def get_event_date_from_url(event_url: str) -> str:
     """Return the event date from a given URL."""
     try:
-        return re.search(r"\d{4}-\d{2}-\d{2}\w*", event_url).group(0)
+        return re.search(r"\d{4}-\d{2}-\d{2}", event_url).group(0)
     except re.error:
         return None
 
@@ -88,7 +85,10 @@ def clean_song_note(song_note: Tag) -> str:
 
 
 async def get_song_note(song: dict, segue: bool) -> str:  # noqa: FBT001
-    """Return the note attached to a list element."""
+    """Return the note attached to a list element.
+
+    It will only return a note for a single li item.
+    """
     if segue:
         return None
 
@@ -101,7 +101,13 @@ async def get_song_note(song: dict, segue: bool) -> str:  # noqa: FBT001
 
 
 async def is_song_segue(i: int, list_size: int) -> bool:
-    """Compare item position in element to total number of items in element."""
+    """Compare item position in element to total number of items in element.
+
+    A segue is an unbroken chain from one song to the next (Ex. Incident > Rosie).
+    Brucebase will list them as multiple items in an li element.
+    This checks if a li element has multiple, and if the current item position
+    is less than the total.
+    """
     return i <= (list_size - 2)
 
 
@@ -183,11 +189,18 @@ async def parse_setlists(
 
 
 async def get_song_id(url: str, cur: psycopg.AsyncCursor) -> int:
-    res = await cur.execute("""SELECT id FROM songs WHERE brucebase_url = %s""", (url,))
+    """Get id for a given song_url."""
+    try:
+        res = await cur.execute(
+            """SELECT id FROM songs WHERE brucebase_url = %s""",
+            (url,),
+        )
 
-    song = await res.fetchone()
+        song = await res.fetchone()
 
-    return song["id"]
+        return song["id"]
+    except TypeError:
+        return None
 
 
 async def get_song_info(
@@ -197,12 +210,15 @@ async def get_song_info(
     cur: psycopg.AsyncCursor,
     event_id: str,
 ) -> list:
-    """Get info about the provided song."""
+    """Get info about the provided song.
+
+    Given an li setlist item, get the url, id, and segue status.
+    """
     song_id = None
 
     if isinstance(seq_song, Tag):
         song_url = await song_id_corrector(event_id, seq_song["href"], cur)
-        song_id = await get_song_id(song_url)
+        song_id = await get_song_id(song_url, cur)
 
     segue = await is_song_segue(sequence.index(seq_song), len(sequence))
     song_note = await get_song_note(song, segue)
@@ -229,6 +245,7 @@ async def setlist_check(
 
 async def get_setlist(
     tab_content: Tag,
+    event_id: str,
     event_url: str,
     cur: psycopg.AsyncCursor,
 ) -> None:

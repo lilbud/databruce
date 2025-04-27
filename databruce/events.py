@@ -7,12 +7,14 @@ This module provides:
 
 import re
 
+import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from tools.parsing import html_parser
 from tools.scraping import scraper
+from user_agent import generate_user_agent
 
 # only gets URLs matching one of the event page types,
 # and that the year is only from 1965 ->
@@ -23,22 +25,33 @@ URL_MATCH_PATTERN = (
 )
 
 
-async def get_event_id(event_date: str, cur: psycopg.AsyncCursor) -> str:
-    """Get the number of event_ids for a date, then append 1 if exists already."""
+async def get_event_id(
+    event_date: str,
+    event_url: str,
+    cur: psycopg.AsyncCursor,
+) -> str:
+    """Get event_id if url already in events, otherwise create id based on date."""
     res = await cur.execute(
-        """SELECT max(event_id) AS id FROM "events" WHERE event_date = %s""",
-        (f"{event_date}%",),
+        """SELECT event_id FROM "events" WHERE brucebase_url = %s""",
+        (event_url,),
     )
 
-    max_date = await res.fetchone()
-
     try:
-        # get the last digit of the highest event id for a date
-        # then append 1 to it and return
-        last_num = str(int(max_date["id"][-1]) + 1).zfill(2)
-        return f"{event_date.replace('-', '')}-{last_num}"
-    except TypeError:
-        return f"{event_date.replace('-', '')}-01"
+        url_check = await res.fetchone()
+        return url_check["event_id"]
+    except IndexError:
+        res = await cur.execute(
+            """SELECT
+                to_char(event_date, 'YYYYMMDD') || '-' ||
+                lpad((count(event_id)+1)::text, 2, '0') AS id
+            FROM "events"
+            WHERE event_date = %s
+            GROUP BY event_id""",
+            (event_date),
+        )
+
+        event = await res.fetchone()
+        return event["id"]
 
 
 async def get_events_from_db(cur: psycopg.AsyncCursor) -> list["str"]:
@@ -71,7 +84,7 @@ async def event_num_fix(cur: psycopg.AsyncCursor) -> None:
     )
 
 
-async def get_events(pool: AsyncConnectionPool) -> None:
+async def get_events(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Get events from Brucebase."""
     event_cat = {
         "gig": "17778567",
@@ -103,7 +116,7 @@ async def get_events(pool: AsyncConnectionPool) -> None:
         event_urls = await get_events_from_db(cur)
 
         for category_id in event_cat.values():
-            response = await scraper.post(category_id)
+            response = await scraper.post(category_id, client)
 
             if response:
                 soup = bs4(response, "lxml")
@@ -113,13 +126,12 @@ async def get_events(pool: AsyncConnectionPool) -> None:
                     if url["url"] not in ignore and url["url"] not in event_urls:
                         event_url = url["url"]
                         event_date = await html_parser.get_event_date(event_url)
+                        event_id = await get_event_id(event_date, event_url, cur)
                         event_note = None
 
                         if "-00" in event_date:
                             event_note = "Placeholder date, actual date unknown."
-                            event_date = re.sub(r"\-00$", "-01", event_date)
-
-                        event_id = await get_event_id(event_date, cur)
+                            event_date = None
 
                         try:
                             await cur.execute(
