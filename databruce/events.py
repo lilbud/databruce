@@ -39,7 +39,7 @@ async def get_event_id(
     try:
         url_check = await res.fetchone()
         return url_check["event_id"]
-    except IndexError:
+    except TypeError:
         res = await cur.execute(
             """SELECT
                 to_char(event_date, 'YYYYMMDD') || '-' ||

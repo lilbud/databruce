@@ -241,7 +241,7 @@ async def get_venues(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> No
                             VALUES (%(id)s, %(name)s, %(city)s, %(state)s, %(country)s,
                                 %(continent)s, %(detail)s)
                             ON CONFLICT (brucebase_url, name, detail)
-                            DO NOTHING RETURNING *""",
+                            DO NOTHING RETURNING *""",  # noqa: E501
                         venue,
                     )
                 except (psycopg.OperationalError, psycopg.IntegrityError) as e:

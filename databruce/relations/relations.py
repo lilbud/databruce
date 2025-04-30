@@ -11,17 +11,21 @@ async def update_relations(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "relations" SET appearances = 0;
+                UPDATE "relations" SET appearances = 0, first_appearance=null, last_appearance=null;
 
                 UPDATE "relations"
                 SET
-                    appearances=t.num
+                    appearances=t.num,
+                    first_appearance=t.first,
+                    last_appearance=t.last
                 FROM (
                     SELECT
-                        relation_id,
-                    count(distinct event_id) AS num
+                    relation_id,
+                    count(distinct event_id) AS num,
+                    MIN(event_id) AS first,
+                    MAX(event_id) AS last
                     FROM "onstage"
-                GROUP BY relation_id
+                        GROUP BY relation_id
                 ) t
                 WHERE "relations".id=t.relation_id;
                 """,

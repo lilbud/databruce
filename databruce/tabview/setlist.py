@@ -56,24 +56,16 @@ async def get_event_from_db(event_url: str, cur: psycopg.AsyncCursor) -> str:
 
 
 async def song_id_corrector(
-    event_id: str,
     song_url: str,
-    cur: psycopg.AsyncCursor,
 ) -> str:
     """Corrects ids that don't match up to SONGS table."""
-    song_id = song_url.replace("/song:", "")
-
-    match song_id:
-        case "rainy-day-women#12%20&%2035" | "rainy-day-women#12 & 35":
-            return "rainy-day-women"
-        case "prove-it-all-night":
-            if await check_event_tags(event_id, "pian78", cur):
-                return "prove-it-all-night-78"
-            return song_id
-        case "born-in-the-usa":
-            return "born-in-the-u-s-a"
+    match song_url:
+        case "/song:rainy-day-women#12%20&%2035" | "/song:rainy-day-women#12 & 35":
+            return "/song:rainy-day-women"
+        case "/song:born-in-the-usa":
+            return "/song:born-in-the-u-s-a"
         case _:
-            return song_id
+            return song_url
 
 
 def clean_song_note(song_note: Tag) -> str:
@@ -197,7 +189,6 @@ async def get_song_id(url: str, cur: psycopg.AsyncCursor) -> int:
         )
 
         song = await res.fetchone()
-
         return song["id"]
     except TypeError:
         return None
@@ -208,16 +199,13 @@ async def get_song_info(
     song: Tag,
     sequence: ResultSet,
     cur: psycopg.AsyncCursor,
-    event_id: str,
 ) -> list:
     """Get info about the provided song.
 
     Given an li setlist item, get the url, id, and segue status.
     """
-    song_id = None
-
     if isinstance(seq_song, Tag):
-        song_url = await song_id_corrector(event_id, seq_song["href"], cur)
+        song_url = await song_id_corrector(seq_song["href"])
         song_id = await get_song_id(song_url, cur)
 
     segue = await is_song_segue(sequence.index(seq_song), len(sequence))
@@ -278,7 +266,6 @@ async def get_setlist(
                     item,
                     sequence,
                     cur,
-                    event_id,
                 )
 
                 current = [event_id, set_name, index, song_id, song_note, segue]
@@ -286,28 +273,28 @@ async def get_setlist(
                 if current not in setlist:
                     setlist.append(current)
 
-    if len(setlist) == 0:
-        await cur.execute(
-            """UPDATE "events" SET setlist_certainty='Unknown'
-                WHERE event_id=%s""",
-            (event_id,),
-        )
+        # if len(setlist) == 0:
+        #     await cur.execute(
+        #         """UPDATE "events" SET setlist_certainty='Unknown'
+        #             WHERE event_id=%s""",
+        #         (event_id,),
+        #     )
 
-        print(f"No setlist available for {event_url}")
-    else:
-        await cur.execute(
-            """UPDATE "events" SET setlist_certainty='Confirmed'
-                WHERE event_id=%s""",
-            (event_id,),
-        )
+        #     print(f"No setlist available for {event_url}")
+        # else:
+        #     await cur.execute(
+        #         """UPDATE "events" SET setlist_certainty='Confirmed'
+        #             WHERE event_id=%s""",
+        #         (event_id,),
+        #     )
 
-        await cur.executemany(
-            """INSERT INTO "setlists"
-                (event_id, set_name, song_num, song_id, song_note, segue)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT(event_id, song_num, song_id)
-                DO NOTHING""",
-            (setlist),
-        )
+        #     await cur.executemany(
+        #         """INSERT INTO "setlists"
+        #                 (event_id, set_name, song_num, song_id, song_note, segue)
+        #                 VALUES (%s, %s, %s, %s, %s, %s)
+        #                 ON CONFLICT(event_id, song_num, song_id)
+        #                 DO NOTHING""",
+        #         (setlist),
+        #     )
 
         print(f"setlist table updated for {event_url}")

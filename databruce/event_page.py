@@ -49,13 +49,13 @@ async def get_event_id(
         return event["id"]
 
 
-async def event_certainty(event_date: str, venue_id: str) -> str:
+async def event_certainty(event_date: str, venue_url: str) -> str:
     """Determine event_certainty based on date and location url."""
     if "-00" in event_date:
         event_certainty = "Uncertain Date"
-    elif "unknown" in venue_id:
+    elif "unknown" in venue_url:
         event_certainty = "Uncertain Location"
-    elif "-00" in event_date and "unknown" in venue_id:
+    elif "-00" in event_date and "unknown" in venue_url:
         event_certainty = "Uncertain Date, Location"
     else:
         event_certainty = "Confirmed"
@@ -125,7 +125,6 @@ async def scrape_event_page(
     response = await scraper.get(f"http://brucebase.wikidot.com{event_url}", client)
 
     if response:
-        cur = conn.cursor()
         soup = bs4(response.text, "lxml")
         page_title = await html_parser.get_page_title(soup)
         event_date = await html_parser.get_event_date(event_url)
@@ -145,7 +144,7 @@ async def scrape_event_page(
         event_type = await get_event_type(event_url)
 
         # check for unknown date or unknown in venue_id
-        certainty = await event_certainty(event_date, event_id, venue_url, cur)
+        certainty = await event_certainty(event_date, venue_url)
 
         # handle page tags and insert into database
         await get_tags(soup, event_id, cur)

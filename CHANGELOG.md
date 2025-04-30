@@ -49,3 +49,9 @@
   - redid the onstage get function, it was kind of a mess with different loops and stuff. Much simpler though should hopefully still handle all cases.
   - moved httpx client to its own function. Realized that every single function was creating its own client instance, rather than just reusing the same one. Using one speeds up the connections as a new one isn't needed for every single request.
   - removed some unneeded dates
+- 2025-04-28:
+  - cleaned up the setlist notes handling of guests. Originally had song note with guests, but moved those to their own table a while back. Went back and added all the rest. This is ultimately cleaner in the long run, plus probably allows for getting a list of every song someone appeared on.
+- 2025-04-29:
+  - fixed relations update code. Was only updating the number of appearances and not the first/last events.
+  - hopefully properly fixed the onstage code, which was silently failing and not erroring out for some reason.
+  - continued moving guest notes to guests

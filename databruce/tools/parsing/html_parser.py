@@ -40,6 +40,7 @@ async def get_page_title(soup: bs4) -> str | None:
 async def get_venue_url(soup: bs4) -> str | None:
     """Return venue url from given page."""
     try:
+        print(soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", ""))
         return soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", "")
     except TypeError:
         return None
