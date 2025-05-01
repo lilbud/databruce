@@ -14,15 +14,11 @@ async def get_band_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int:
 
         band = await res.fetchone()
         return band["id"]
-    except TypeError:
-        await cur.execute(
-            """INSERT INTO bands (brucebase_url, band_name) VALUES (%s, %s)""",
-            (url, name),
-        )
-
+    except TypeError:  # band doesn't exist, insert into BANDS and return id
         res = await cur.execute(
-            """SELECT id FROM bands WHERE brucebase_url = %s""",
-            (url,),
+            """INSERT INTO bands (brucebase_url, band_name)
+            VALUES (%s, %s) RETURNING *""",
+            (url, name),
         )
 
         band = await res.fetchone()
@@ -39,15 +35,11 @@ async def get_relation_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int:
 
         relation = await res.fetchone()
         return relation["id"]
-    except TypeError:  # relation doesn't exist
-        await cur.execute(
-            """INSERT INTO relations (brucebase_url, relation_name) VALUES (%s, %s)""",
-            (url, name),
-        )
-
+    except TypeError:  # relation doesn't exist, insert into RELATIONS and return id
         res = await cur.execute(
-            """SELECT id FROM relations WHERE brucebase_url = %s""",
-            (url,),
+            """INSERT INTO relations (brucebase_url, relation_name)
+            VALUES (%s, %s) RETURNING *""",
+            (url, name),
         )
 
         relation = await res.fetchone()

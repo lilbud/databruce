@@ -1,24 +1,13 @@
 """File for testing random code/functions/ideas."""
 
 import asyncio
-import datetime
-import re
-import time
-from pathlib import Path
 
-import ftfy
-import numpy as np
-import pandas as pd
 import psycopg
-import slugify
-from bs4 import BeautifulSoup as bs4
-from bs4 import Tag
-from database.db import load_db
+from database import db
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
-from titlecase import titlecase
-from tools.parsing import html_parser
-from tools.scraping import scraper
+from psycopg_pool import AsyncConnectionPool
+from venues import venue_parser
 
 load_dotenv()
 
@@ -30,28 +19,20 @@ def get_rel_id(name: str, cur: psycopg.Cursor) -> int:
     ).fetchone()["id"]
 
 
-def get_event(id: int, cur: psycopg.Cursor) -> int:
+def get_event(id: int, cur: psycopg.Cursor) -> int:  # noqa: D103
     return cur.execute(
         """SELECT event_id FROM setlists WHERE id = %s""",
         (id,),
     ).fetchone()["event_id"]
 
 
-def main():
-    with load_db() as conn, conn.cursor() as cur:
+def add_guests_to_setlist():
+    with db.load_db() as conn, conn.cursor() as cur:
         setlist = [
-            63518,
+            31607,
         ]
         member_list = [
-            "Darlene Love",
-            "Nora Guthrie",
-            "Emmylou Harris",
-            "Patti Scialfa",
-            "Tom Morello",
-            "John Fogerty",
-            "Jackson Browne",
-            "Steven Van Zandt",
-            "Nils Lofgren",
+            "Robbin Thompson",
         ]
 
         for s in setlist:
@@ -70,4 +51,4 @@ def main():
                 )
 
 
-main()
+add_guests_to_setlist()

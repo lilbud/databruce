@@ -3,7 +3,6 @@
 import re
 
 import psycopg
-import slugify
 from bs4 import ResultSet, Tag
 from titlecase import titlecase
 
@@ -273,28 +272,28 @@ async def get_setlist(
                 if current not in setlist:
                     setlist.append(current)
 
-        # if len(setlist) == 0:
-        #     await cur.execute(
-        #         """UPDATE "events" SET setlist_certainty='Unknown'
-        #             WHERE event_id=%s""",
-        #         (event_id,),
-        #     )
+    if len(setlist) == 0:
+        await cur.execute(
+            """UPDATE "events" SET setlist_certainty='Unknown'
+                WHERE event_id=%s""",
+            (event_id,),
+        )
 
-        #     print(f"No setlist available for {event_url}")
-        # else:
-        #     await cur.execute(
-        #         """UPDATE "events" SET setlist_certainty='Confirmed'
-        #             WHERE event_id=%s""",
-        #         (event_id,),
-        #     )
+        print(f"No setlist available for {event_url}")
+    else:
+        await cur.execute(
+            """UPDATE "events" SET setlist_certainty='Confirmed'
+                WHERE event_id=%s""",
+            (event_id,),
+        )
 
-        #     await cur.executemany(
-        #         """INSERT INTO "setlists"
-        #                 (event_id, set_name, song_num, song_id, song_note, segue)
-        #                 VALUES (%s, %s, %s, %s, %s, %s)
-        #                 ON CONFLICT(event_id, song_num, song_id)
-        #                 DO NOTHING""",
-        #         (setlist),
-        #     )
+        await cur.executemany(
+            """INSERT INTO "setlists"
+                    (event_id, set_name, song_num, song_id, song_note, segue)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT(event_id, song_num, song_id)
+                    DO NOTHING""",
+            (setlist),
+        )
 
         print(f"setlist table updated for {event_url}")

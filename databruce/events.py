@@ -5,6 +5,7 @@ This module provides:
 - get_events: Get events from the site and inserts them into the database.
 """
 
+import datetime
 import re
 
 import httpx
@@ -31,27 +32,17 @@ async def get_event_id(
     cur: psycopg.AsyncCursor,
 ) -> str:
     """Get event_id if url already in events, otherwise create id based on date."""
+    print(event_url)
     res = await cur.execute(
         """SELECT event_id FROM "events" WHERE brucebase_url = %s""",
         (event_url,),
     )
+    url_check = await res.fetchone()
 
-    try:
-        url_check = await res.fetchone()
+    if url_check:
         return url_check["event_id"]
-    except TypeError:
-        res = await cur.execute(
-            """SELECT
-                to_char(event_date, 'YYYYMMDD') || '-' ||
-                lpad((count(event_id)+1)::text, 2, '0') AS id
-            FROM "events"
-            WHERE event_date = %s
-            GROUP BY event_id""",
-            (event_date),
-        )
 
-        event = await res.fetchone()
-        return event["id"]
+    return datetime.datetime.strptime(event_date, "%Y-%m-%d").strftime("%Y%m%d-01")  # noqa: DTZ007
 
 
 async def get_events_from_db(cur: psycopg.AsyncCursor) -> list["str"]:

@@ -37,13 +37,16 @@ async def get_page_title(soup: bs4) -> str | None:
         return None
 
 
-async def get_venue_url(soup: bs4) -> str | None:
+async def get_venue_url(soup: bs4) -> list[str, str]:
     """Return venue url from given page."""
     try:
-        print(soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", ""))
-        return soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", "")
+        url = soup.find("a", href=re.compile("/venue:"))["href"].replace("/venue:", "")
+        name = soup.find("a", href=re.compile("/venue:")).get_text()
+
     except TypeError:
         return None
+    else:
+        return [url, name]
 
 
 async def get_show_descriptor_from_title(title: str) -> str | None:

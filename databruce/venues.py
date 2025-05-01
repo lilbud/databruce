@@ -150,7 +150,7 @@ async def venue_parser(
     cur: psycopg.AsyncCursor,
 ) -> dict[str]:
     """Parse venue name and return list of its components."""
-    venue_dict = {
+    venue = {
         "id": venue_url,
         "name": None,
         "city": None,
@@ -178,9 +178,9 @@ async def venue_parser(
         # fix weird encodings and strip all components
         matches = [ftfy.fix_text(m.strip()) for m in match.groups()]
 
-        venue_dict["name"] = matches[0]
-        venue_dict["city"] = await get_city_id(matches[1], cur)
-        venue_dict["country"] = await get_country_id(matches[-1], cur)
+        venue["name"] = matches[0]
+        venue["city"] = await get_city_id(matches[1], cur)
+        venue["country"] = await get_country_id(matches[-1], cur)
 
         # australia has states, apparently
         # and the venues can have 4 parts because of it
@@ -189,13 +189,13 @@ async def venue_parser(
             # VENUE, CITY, STATE, AUS
             match_split = matches[0].split(", ")
 
-            venue_dict["name"] = match_split[0]
-            venue_dict["city"] = await get_city_id(match_split[1], cur)
-            venue_dict["state"] = await get_state_id(matches[-2], cur)
+            venue["name"] = match_split[0]
+            venue["city"] = await get_city_id(match_split[1], cur)
+            venue["state"] = await get_state_id(matches[-2], cur)
 
         # US state abbreviations are two chars long
         if re.search(r"^\w{2}$", matches[-1]):
-            venue_dict["state"] = await get_state_id(matches[-1].upper(), cur)
+            venue["state"] = await get_state_id(matches[-1].upper(), cur)
 
             # uses the states table and grabs the proper country name
             country = await get_country_from_abbrev(
@@ -204,15 +204,22 @@ async def venue_parser(
             )
 
             # finds the proper country id given the country
-            venue_dict["country"] = await get_country_id(country, cur)
+            venue["country"] = await get_country_id(country, cur)
 
         # getting continent based on country
-        venue_dict["continent"] = await get_continent_by_country(
-            venue_dict["country"],
+        venue["continent"] = await get_continent_by_country(
+            venue["country"],
             cur,
         )
 
-    return venue_dict
+        # once splitting is done above, check venue name for detail.
+        if len(venue["name"].split(",")) == 2:
+            split_name = [v.strip() for v in venue["name"].split(",")]
+
+            venue["name"] = split_name[0]
+            venue["detail"] = split_name[1]
+
+    return venue
 
 
 async def get_venues(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:

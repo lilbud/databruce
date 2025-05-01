@@ -6,7 +6,6 @@ This module provides:
 - get_event_data: Scrapes page and gets data
 """
 
-import datetime
 import re
 
 import httpx
@@ -16,6 +15,7 @@ from tabview import on_stage, setlist
 from tags.tags import get_tags
 from tools.parsing import html_parser
 from tools.scraping import scraper
+from venues import venue_parser
 
 MAIN_URL = "http://brucebase.wikidot.com"
 
@@ -78,7 +78,7 @@ async def tabview_handler(
             tab_content = content.find("div", {"id": f"wiki-tab-0-{index}"})
 
             match tab.text.strip():
-                case "On Stage" | "In Studio":
+                case "On Stage" | "In Studio" | "On Set":
                     await on_stage.get_onstage(tab_content, event_id, cur)
                 case "Setlist":
                     await setlist.get_setlist(tab_content, event_id, event_url, cur)
@@ -100,18 +100,31 @@ async def get_event_type(event_url: str) -> str | None:
     return event_types.get(re.findall("(/.*:)", event_url)[0], None)
 
 
-async def get_venue_id(venue_url: str, cur: psycopg.AsyncCursor) -> int | None:
+async def get_venue_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int | None:
     """Get ID by venue_url."""
     res = await cur.execute(
         """SELECT id FROM venues WHERE brucebase_url = %s""",
-        (venue_url,),
+        (url,),
     )
 
     try:
         venue = await res.fetchone()
         return venue["id"]
-    except TypeError:
-        return None
+    except TypeError:  # venue doesn't exist, insert and return new id
+        venue = await venue_parser(name, url, cur)
+
+        res = await cur.execute(
+            """INSERT INTO "venues"
+                (brucebase_url, name, city, state, country, continent, detail)
+                VALUES (%(id)s, %(name)s, %(city)s, %(state)s, %(country)s,
+                    %(continent)s, %(detail)s)
+                ON CONFLICT (brucebase_url, name, detail)
+                DO NOTHING RETURNING *""",
+            venue,
+        )
+
+        venue = await res.fetchone()
+        return venue["id"]
 
 
 async def scrape_event_page(
@@ -128,8 +141,14 @@ async def scrape_event_page(
         soup = bs4(response.text, "lxml")
         page_title = await html_parser.get_page_title(soup)
         event_date = await html_parser.get_event_date(event_url)
-        venue_url = await html_parser.get_venue_url(soup)
-        venue_id = await get_venue_id(venue_url, cur)
+
+        venue = await html_parser.get_venue_url(soup)
+
+        venue_url = venue[0]
+        venue_name = venue[1]
+
+        venue_id = await get_venue_id(venue_url, venue_name, cur)
+
         show = await html_parser.get_show_descriptor_from_title(page_title)
 
         # if event not provided, either get from database or generate new one
