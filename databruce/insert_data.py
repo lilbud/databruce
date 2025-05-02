@@ -83,16 +83,9 @@ async def main(pool: AsyncConnectionPool) -> None:
     client = await scraper.get_client()
 
     async with pool, client:
-        # await update_get_new(pool, client)
-        # await update_existing(pool, client)
-        # await update_stats(pool)
-        async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-            await scrape_event_page(
-                "/recording:2025-04-22-count-basie-theatre-red-bank-nj",
-                cur,
-                conn,
-                client,
-            )
+        await update_get_new(pool, client)
+        await update_existing(pool, client)
+        await update_stats(pool)
 
 
 if __name__ == "__main__":

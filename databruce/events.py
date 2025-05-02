@@ -42,6 +42,9 @@ async def get_event_id(
     if url_check:
         return url_check["event_id"]
 
+    if re.search("-00$", event_date):
+        return f"{event_date.replace('-', '')}-01"
+
     return datetime.datetime.strptime(event_date, "%Y-%m-%d").strftime("%Y%m%d-01")  # noqa: DTZ007
 
 

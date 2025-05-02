@@ -58,3 +58,6 @@
 - 2025-04-30:
   - fixed venue parser not grabbing detail from venue name. This could cause an issue where on insert a venue already exists, but without the split detail it's considered "new" and inserted anyway. Venue parser is still a mess.
   - added functions to onstage to get a relation/band id for a given url in the onstage tab. If it doesn't exist, it will insert it and return the new id. Before, if a relation or band didn't exist, it would insert NULL. This is fine for bands, but relations shouldn't be NULL.
+- 2025-05-01:
+  - fixed one script issue where the event id wasn't returning if the date was invalid.
+  - updated setlists to insert "It Takes Two" and "Meeting in the Town Tonight" as proper setlist items. Before these were just snippet notes, which didn't get tallied for the song counts. Will probably go back and change a few other select snippets to be proper setlist items.

@@ -49,6 +49,3 @@ def add_guests_to_setlist():
                     """,
                     {"event": event, "setlist": s, "guest": id},
                 )
-
-
-add_guests_to_setlist()
