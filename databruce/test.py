@@ -29,10 +29,14 @@ def get_event(id: int, cur: psycopg.Cursor) -> int:  # noqa: D103
 def add_guests_to_setlist():
     with db.load_db() as conn, conn.cursor() as cur:
         setlist = [
-            31607,
+            42800,
         ]
         member_list = [
-            "Robbin Thompson",
+            918,
+            944,
+            710,
+            233,
+            999,
         ]
 
         for s in setlist:
@@ -49,3 +53,6 @@ def add_guests_to_setlist():
                     """,
                     {"event": event, "setlist": s, "guest": id},
                 )
+
+
+add_guests_to_setlist()

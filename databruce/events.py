@@ -5,9 +5,6 @@ This module provides:
 - get_events: Get events from the site and inserts them into the database.
 """
 
-import datetime
-import re
-
 import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
@@ -15,7 +12,6 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from tools.parsing import html_parser
 from tools.scraping import scraper
-from user_agent import generate_user_agent
 
 # only gets URLs matching one of the event page types,
 # and that the year is only from 1965 ->
@@ -26,26 +22,111 @@ URL_MATCH_PATTERN = (
 )
 
 
+async def sessions(pool: AsyncConnectionPool) -> None:
+    """Update counts for album sessions."""
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        try:
+            await cur.execute(
+                """
+                UPDATE "sessions" SET first_event = NULL, last_event = NULL, num_events=0, num_songs=0;
+
+                UPDATE "sessions"
+                SET
+                    first_event = t.first,
+                    last_event = t.last,
+                    num_events = t.event_count,
+                    num_songs = t.song_count
+                FROM (
+                    SELECT
+                        e.session_id AS id,
+                        MIN(e.event_id) AS first,
+                        MAX(e.event_id) AS last,
+                        COUNT(DISTINCT e.event_id) AS event_count,
+                        COUNT(DISTINCT s.song_id) AS song_count
+                    FROM events e
+                    LEFT JOIN setlists s USING(event_id)
+                    WHERE e.session_id IS NOT NULL
+                    GROUP BY e.session_id
+                ) t
+                WHERE "sessions"."id" = t.id
+                """,  # noqa: E501
+            )
+        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+            print("SESSIONS: Could not complete operation:", e)
+        else:
+            print("Updated SESSIONS with info from EVENTS")
+
+
+async def certainty(pool: AsyncConnectionPool) -> None:
+    """Set event/setlist certainty.
+
+    Event certainty is based on the date/venue. Empty date and/or venue with 'unknown'
+    in the name is an Uncertain event.
+
+    Setlist certainty is based on number of songs and if there is a bootleg at all.
+    """
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            UPDATE events SET event_certainty=NULL, setlist_certainty=NULL;
+
+            UPDATE events SET
+                event_certainty = t.event,
+                setlist_certainty = t.setlist
+            FROM (
+            SELECT
+                e.event_id,
+                CASE
+                WHEN count(s.song_id) > 0 AND count(b.id) > 0 THEN 'Confirmed'
+                WHEN count(s.song_id) > 0 AND count(b.id) = 0 THEN 'Probable'
+                ELSE 'Unknown' END as setlist,
+                CASE
+                WHEN e.event_date IS NULL THEN 'Unknown Date'
+                WHEN e.venue_id IS NULL THEN 'Unknown Location'
+                WHEN e.event_date IS NULL AND v.name LIKE '%Unknown%' THEN 'Uncertain Date/Location'
+                ELSE 'Confirmed'
+                END as event
+            FROM events e
+            LEFT JOIN setlists s ON s.event_id = e.event_id
+            LEFT JOIN bootlegs b ON b.event_id = e.event_id
+            LEFT JOIN venues v ON v.id = e.venue_id
+            GROUP BY e.event_id, v.name
+            ) t
+            WHERE "events"."event_id" = t.event_id
+            """,
+        )
+
+
 async def get_event_id(
     event_date: str,
     event_url: str,
     cur: psycopg.AsyncCursor,
 ) -> str:
     """Get event_id if url already in events, otherwise create id based on date."""
-    print(event_url)
     res = await cur.execute(
         """SELECT event_id FROM "events" WHERE brucebase_url = %s""",
         (event_url,),
     )
+
     url_check = await res.fetchone()
 
-    if url_check:
+    try:
         return url_check["event_id"]
+    except TypeError:
+        date = event_date.replace("-", "")
 
-    if re.search("-00$", event_date):
-        return f"{event_date.replace('-', '')}-01"
+        res = await cur.execute(
+            """SELECT
+                CASE WHEN count(event_id)::int = 0 THEN 1 ELSE count(event_id) END as num
+            FROM "events"
+            WHERE event_id LIKE %s
+            """,
+            (f"{date}%",),
+        )
 
-    return datetime.datetime.strptime(event_date, "%Y-%m-%d").strftime("%Y%m%d-01")  # noqa: DTZ007
+        event_count = await res.fetchone()
+
+        return f"{date}-{str(event_count['num'] + 1).zfill(2)}"
 
 
 async def get_events_from_db(cur: psycopg.AsyncCursor) -> list["str"]:
@@ -119,6 +200,7 @@ async def get_events(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> No
                 for url in urls:
                     if url["url"] not in ignore and url["url"] not in event_urls:
                         event_url = url["url"]
+
                         event_date = await html_parser.get_event_date(event_url)
                         event_id = await get_event_id(event_date, event_url, cur)
                         event_note = None
@@ -136,6 +218,8 @@ async def get_events(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> No
                                     RETURNING *""",
                                 (event_id, event_date, event_url, event_note),
                             )
+
+                            conn.commit()
                         except (
                             psycopg.OperationalError,
                             psycopg.IntegrityError,

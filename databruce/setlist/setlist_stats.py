@@ -55,3 +55,63 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
             print("Could not complete operation:", e)
         else:
             print("Got opener/closer")
+
+
+async def debut_premiere(pool: AsyncConnectionPool) -> None:
+    """Mark song premieres and tour debuts."""
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        try:
+            await cur.execute(
+                """
+                UPDATE
+                    "setlists"
+                SET
+                    debut = CASE
+                        WHEN id = ANY (t.debuts) THEN true
+                        ELSE FALSE
+                    END,
+                    premiere = CASE
+                        WHEN id = t.premiere THEN TRUE
+                        ELSE FALSE
+                    END
+                FROM
+                (
+                    SELECT
+                        debuts,
+                        premiere
+                    FROM
+                    premiere_debut
+                ) t
+                WHERE id = t.premiere OR id = ANY(t.debuts)
+                """,
+            )
+
+        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+            print("Could not complete operation:", e)
+        else:
+            print("Got premiere/debut stats")
+
+
+async def calc_song_gap(pool: AsyncConnectionPool) -> None:
+    """Calculate the number of events between songs being played."""
+    async with pool.connection() as conn, conn.cursor() as cur:
+        try:
+            await cur.execute(
+                """
+                UPDATE "setlists" SET last=NULL, next=NULL, last_time_played=NULL;
+
+                UPDATE "setlists"
+                SET
+                    last = t.last,
+                    next = t.next,
+                    last_time_played = t.last_time_played
+                FROM (
+                    SELECT * FROM "song_gaps" ORDER BY id
+                ) t
+                WHERE "setlists"."id" = t.id
+                """,
+            )
+        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+            print("Could not complete operation:", e)
+        else:
+            print("Got song gap stats")

@@ -14,13 +14,12 @@ from archive import get_list_from_archive
 from covers import get_covers
 from database import db
 from event_page import scrape_event_page
-from events import get_events
+from events import certainty, get_events, sessions
 from locations import update_locations
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from relations import bands, relations
-from setlist.premiere_debut import debut_premiere
-from setlist.song_gap_calc import calc_song_gap
+from setlist.setlist_stats import calc_song_gap, debut_premiere, opener_closer
 from songs import get_songs, update_song_info
 from tools.scraping import scraper
 from tours import update_tour_legs, update_tour_runs, update_tours
@@ -76,6 +75,8 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
     await debut_premiere(pool)
     await calc_song_gap(pool)
     await update_song_info(pool)
+    await certainty(pool)
+    await sessions(pool)
 
 
 async def main(pool: AsyncConnectionPool) -> None:

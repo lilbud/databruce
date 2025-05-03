@@ -11,6 +11,7 @@ import re
 import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
+from events import get_event_id
 from tabview import on_stage, setlist
 from tags.tags import get_tags
 from tools.parsing import html_parser
@@ -18,49 +19,6 @@ from tools.scraping import scraper
 from venues import venue_parser
 
 MAIN_URL = "http://brucebase.wikidot.com"
-
-
-async def get_event_id(
-    event_date: str,
-    event_url: str,
-    cur: psycopg.AsyncCursor,
-) -> str:
-    """Get event_id if url already in events, otherwise create id based on date."""
-    res = await cur.execute(
-        """SELECT event_id FROM "events" WHERE brucebase_url = %s""",
-        (event_url,),
-    )
-
-    try:
-        url_check = await res.fetchone()
-        return url_check["event_id"]
-    except IndexError:
-        res = await cur.execute(
-            """SELECT
-                to_char(event_date, 'YYYYMMDD') || '-' ||
-                lpad((count(event_id)+1)::text, 2, '0') AS id
-            FROM "events"
-            WHERE event_date = %s
-            GROUP BY event_id""",
-            (event_date),
-        )
-
-        event = await res.fetchone()
-        return event["id"]
-
-
-async def event_certainty(event_date: str, venue_url: str) -> str:
-    """Determine event_certainty based on date and location url."""
-    if "-00" in event_date:
-        event_certainty = "Uncertain Date"
-    elif "unknown" in venue_url:
-        event_certainty = "Uncertain Location"
-    elif "-00" in event_date and "unknown" in venue_url:
-        event_certainty = "Uncertain Date, Location"
-    else:
-        event_certainty = "Confirmed"
-
-    return event_certainty
 
 
 async def tabview_handler(
@@ -162,9 +120,6 @@ async def scrape_event_page(
         # get event type from url
         event_type = await get_event_type(event_url)
 
-        # check for unknown date or unknown in venue_id
-        certainty = await event_certainty(event_date, venue_url)
-
         # handle page tags and insert into database
         await get_tags(soup, event_id, cur)
 
@@ -174,13 +129,11 @@ async def scrape_event_page(
         try:
             await cur.execute(
                 """UPDATE "events" SET venue_id=%(venue)s, early_late=%(early)s,
-                        event_type=%(type)s, event_certainty=%(certainty)s
-                    WHERE event_id=%(event)s""",
+                        event_type=%(type)sWHERE event_id=%(event)s""",
                 {
                     "venue": venue_id,
                     "early": show,
                     "type": event_type,
-                    "certainty": certainty,
                     "event": event_id,
                 },
             )

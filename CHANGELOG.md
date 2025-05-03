@@ -61,3 +61,9 @@
 - 2025-05-01:
   - fixed one script issue where the event id wasn't returning if the date was invalid.
   - updated setlists to insert "It Takes Two" and "Meeting in the Town Tonight" as proper setlist items. Before these were just snippet notes, which didn't get tallied for the song counts. Will probably go back and change a few other select snippets to be proper setlist items.
+- 2025-05-02:
+  - fixed event_id get. It was supposed to either return the existing ID for a URL OR create a new one by converting the date to YYYYMMDD and appending a number to the end. It wasn't working like that, instead erroring out and doing nothing, or returning an existing one.
+  - Added Studio Sessions runs. Thought about adding these as "tour legs", but they're different enough.
+  - checked setlists against 1974-1975 Brucebase, added some missing snippets and other info like noting slow/band versions of TR and Incident.
+  - Earlier checked against 2008 as well, so that is up to date.
+  - added event_id back to releases. This way, only partially released shows will get a setlist note. Full releases will instead get moved to the top row of the embed and somewhere on the event page on Databruce.

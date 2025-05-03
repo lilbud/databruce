@@ -32,28 +32,6 @@ async def get_set_name_from_url(event_url: str) -> str:
         return "Show"
 
 
-async def get_event_date_from_url(event_url: str) -> str:
-    """Return the event date from a given URL."""
-    try:
-        return re.search(r"\d{4}-\d{2}-\d{2}", event_url).group(0)
-    except re.error:
-        return None
-
-
-async def get_event_from_db(event_url: str, cur: psycopg.AsyncCursor) -> str:
-    """Return the event_id from the database for the given event_url."""
-    res = await cur.execute(
-        """SELECT event_id AS id FROM "events" WHERE brucebase_url=%s""",
-        (event_url,),
-    )
-
-    try:
-        event = await res.fetchone()
-        return event["id"]
-    except IndexError:
-        return ""
-
-
 async def song_id_corrector(
     song_url: str,
 ) -> str:
@@ -67,7 +45,7 @@ async def song_id_corrector(
             return song_url
 
 
-def clean_song_note(song_note: Tag) -> str:
+async def clean_song_note(song_note: Tag) -> str:
     """Clean the song note with regex. Removes parenthesis and whitespace."""
     try:
         return re.sub(r"^[\s\(\)]|[\s\(\)]$", "", song_note.span.get_text())
@@ -102,12 +80,12 @@ async def is_song_segue(i: int, list_size: int) -> bool:
     return i <= (list_size - 2)
 
 
-def check_set_order(header_list: list[Tag]) -> list:
+async def check_set_order(header_list: list[Tag]) -> list:
     """Get the proper order of sets by returning a list of the set_header p elements."""
     return [titlecase(p.get_text()) for p in header_list]
 
 
-def rearrange_sets(setlist: dict, proper_set_order: list) -> dict:
+async def rearrange_sets(setlist: dict, proper_set_order: list) -> dict:
     """Occasionally the setlists will be in the wrong order.
 
     usually putting soundcheck at the end, even when it is inserted first.
@@ -130,7 +108,7 @@ async def parse_setlists(
     proper_set_order = [f"{default_set_name}"]
 
     if len(tab_content.find_all("p")) > 1:
-        proper_set_order = check_set_order(tab_content.find_all("p"))
+        proper_set_order = await check_set_order(tab_content.find_all("p"))
     else:
         sets = {f"{default_set_name}": []}
         current_set_name = default_set_name
@@ -176,7 +154,7 @@ async def parse_setlists(
     # not sure why, but this function will ensure they match the proper order
     # as in the setlist tab
 
-    return rearrange_sets(sets, proper_set_order)
+    return await rearrange_sets(sets, proper_set_order)
 
 
 async def get_song_id(url: str, cur: psycopg.AsyncCursor) -> int:
@@ -238,7 +216,6 @@ async def get_setlist(
 ) -> None:
     """Get a list of songs played at a given event and insert into database."""
     setlist = []
-    event_id = await get_event_from_db(event_url, cur)
 
     # the default set name is the page category in the URL
     default_set_name = await get_set_name_from_url(event_url)
