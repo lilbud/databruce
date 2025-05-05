@@ -2,6 +2,7 @@
 
 import asyncio
 
+import httpx
 import psycopg
 from database import db
 from dotenv import load_dotenv

@@ -67,3 +67,7 @@
   - checked setlists against 1974-1975 Brucebase, added some missing snippets and other info like noting slow/band versions of TR and Incident.
   - Earlier checked against 2008 as well, so that is up to date.
   - added event_id back to releases. This way, only partially released shows will get a setlist note. Full releases will instead get moved to the top row of the embed and somewhere on the event page on Databruce.
+2024-05-04:
+  - added `original` bool column to the songs table. True if Bruce, false if not. Figure its easier to check for a bool compared to having to check for "Bruce Springsteen" exactly.
+  - added `guest` bool to onstage. Similar concept to the above, easier to check for a T/F than checking string matching.
+  - removed the "political rally" tours. These are closer to a leg or a run rather than an actual proper tour. Because of these, they are now grouped under a "political rallies" tour, and each of them is a leg of that tour. 
