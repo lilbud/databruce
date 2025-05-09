@@ -129,7 +129,7 @@ async def scrape_event_page(
         try:
             await cur.execute(
                 """UPDATE "events" SET venue_id=%(venue)s, early_late=%(early)s,
-                        event_type=%(type)sWHERE event_id=%(event)s""",
+                        event_type=%(type)s WHERE event_id=%(event)s""",
                 {
                     "venue": venue_id,
                     "early": show,

@@ -219,7 +219,7 @@ async def get_events(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> No
                                 (event_id, event_date, event_url, event_note),
                             )
 
-                            conn.commit()
+                            await conn.commit()
                         except (
                             psycopg.OperationalError,
                             psycopg.IntegrityError,

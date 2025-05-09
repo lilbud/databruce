@@ -16,7 +16,7 @@ async def get_band_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int:
         return band["id"]
     except TypeError:  # band doesn't exist, insert into BANDS and return id
         res = await cur.execute(
-            """INSERT INTO bands (brucebase_url, band_name)
+            """INSERT INTO bands (brucebase_url, name)
             VALUES (%s, %s) RETURNING *""",
             (url, name),
         )
