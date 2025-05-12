@@ -37,7 +37,7 @@ async def get_relation_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int:
         return relation["id"]
     except TypeError:  # relation doesn't exist, insert into RELATIONS and return id
         res = await cur.execute(
-            """INSERT INTO relations (brucebase_url, relation_name)
+            """INSERT INTO relations (brucebase_url, name)
             VALUES (%s, %s) RETURNING *""",
             (url, name),
         )
