@@ -100,12 +100,11 @@ async def scrape_event_page(
         page_title = await html_parser.get_page_title(soup)
         event_date = await html_parser.get_event_date(event_url)
 
-        venue = await html_parser.get_venue_url(soup)
-
-        venue_url = venue[0]
-        venue_name = venue[1]
-
-        venue_id = await get_venue_id(venue_url, venue_name, cur)
+        try:
+            venue = await html_parser.get_venue_url(soup)
+            venue_id = await get_venue_id(url=venue[0], name=venue[1], cur=cur)
+        except TypeError:
+            venue_id = None
 
         show = await html_parser.get_show_descriptor_from_title(page_title)
 

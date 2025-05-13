@@ -88,7 +88,7 @@ async def get_onstage(
 
             except AttributeError:
                 relation = await get_relation_id(link.a["href"], link.a.get_text(), cur)
-                band = await get_band_id(link.a["href"], link.a.get_text(), cur)
+                band = None
                 note = await get_note(link)
 
             if relation not in [k[0] for k in onstage]:
