@@ -4,7 +4,7 @@ httpx
 ftfy
 titlecase
 python-dotenv
-psycopg[pool]
+psycopg[binary,pool]
 lxml
 user-agent
 python-slugify
