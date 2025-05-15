@@ -78,6 +78,7 @@ async def certainty(pool: AsyncConnectionPool) -> None:
                 e.event_id,
                 CASE
                 WHEN count(s.song_id) > 0 AND count(b.id) > 0 THEN 'Confirmed'
+                WHEN count(s.song_id) > 0 AND count(n.id) > 0 THEN 'Confirmed'
                 WHEN count(s.song_id) > 0 AND count(b.id) = 0 THEN 'Probable'
                 ELSE 'Unknown' END as setlist,
                 CASE
@@ -89,6 +90,7 @@ async def certainty(pool: AsyncConnectionPool) -> None:
             FROM events e
             LEFT JOIN setlists s ON s.event_id = e.event_id
             LEFT JOIN bootlegs b ON b.event_id = e.event_id
+            LEFT JOIN nugs_releases n ON n.event_id = e.event_id
             LEFT JOIN venues v ON v.id = e.venue_id
             GROUP BY e.event_id, v.name
             ) t

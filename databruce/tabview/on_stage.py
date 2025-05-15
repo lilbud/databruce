@@ -111,5 +111,5 @@ async def get_onstage(
 
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
-
-    print(f"onstage table updated for {event_id}")
+        else:
+            print(f"onstage table updated for {event_id}")

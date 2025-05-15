@@ -73,3 +73,9 @@
   - removed the "political rally" tours. These are closer to a leg or a run rather than an actual proper tour. Because of these, they are now grouped under a "political rallies" tour, and each of them is a leg of that tour. 
 2025-05-07
   - fixed some setlists with incorrect song_nums, as well as added a missing "People Get Ready" to a show or two.
+2025-05-14:
+  - added the album collections to the releases
+  - removed a few pointless releases unless I feel they need to be added back.
+  - added all the 2025 nugs releases to that table
+  - added setlist for May 14, 2025 in Manchester
+  - fixed event/setlist certainty script not counting for nugs releases

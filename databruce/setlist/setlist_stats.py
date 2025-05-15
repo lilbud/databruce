@@ -51,6 +51,7 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                 ) t
                 WHERE "setlists"."id" = t.id""",  # noqa: E501
             )
+            await conn.commit()
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
         else:
@@ -86,6 +87,8 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
                 """,
             )
 
+            await conn.commit()
+
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
         else:
@@ -111,6 +114,8 @@ async def calc_song_gap(pool: AsyncConnectionPool) -> None:
                 WHERE "setlists"."id" = t.id
                 """,
             )
+
+            await conn.commit()
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
         else:
