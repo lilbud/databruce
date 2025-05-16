@@ -79,3 +79,5 @@
   - added all the 2025 nugs releases to that table
   - added setlist for May 14, 2025 in Manchester
   - fixed event/setlist certainty script not counting for nugs releases
+2025-05-15:
+  - removed bit in locations where events were only counted before the current date. When really, every event should be counted for the location stats unless it is cancelled.

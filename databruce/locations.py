@@ -29,7 +29,6 @@ async def update_cities(cur: psycopg.AsyncCursor) -> None:
                     MAX(v.last_played) AS last
                 FROM venues v
                 LEFT JOIN events e ON e.event_id = v.last_played
-                WHERE e.event_date <= NOW()
                 GROUP BY v.city
                 ORDER BY v.city
             ) t
@@ -63,7 +62,6 @@ async def update_states(cur: psycopg.AsyncCursor) -> None:
                     MAX(v.last_played) AS last
                 FROM venues v
                 LEFT JOIN events e ON e.event_id = v.last_played
-                WHERE e.event_date <= NOW()
                 GROUP BY v.state
                 ORDER BY v.state
             ) t
@@ -97,7 +95,6 @@ async def update_countries(cur: psycopg.AsyncCursor) -> None:
                     MAX(v.last_played) AS last
                 FROM venues v
                 LEFT JOIN events e ON e.event_id = v.last_played
-                WHERE e.event_date <= NOW()
                 GROUP BY v.country
                 ORDER BY v.country
             ) t

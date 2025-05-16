@@ -1,9 +1,12 @@
 """File for testing random code/functions/ideas."""
 
 import asyncio
+import json
 import re
 from datetime import datetime
+from pathlib import Path
 
+import ftfy
 import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
@@ -112,3 +115,39 @@ def manual_onstage():
                 VALUES (%s, %s, %s)""",
                 (event_id, member[0], member[1]),
             )
+
+
+import pandas as pd
+
+df = pd.read_parquet(
+    r"C:\Users\bvw20\Desktop\train-00000-of-00001.parquet",
+)
+
+print(df)
+unique_words = set()
+for text in df["lyrics"]:
+    lyric = re.sub(r"\[(Verse ?\d?|(Pre-|Post-)?Chorus ?\d?)\]", "", text)
+
+    for word in lyric.split():
+        word = re.sub(r"[\.,\?\(\)\!\;\[\]]|^\"|\"$", "", word)
+        unique_words.add(word.strip().lower())
+
+words = {}
+
+for word in unique_words:
+    words[str(word)] = 0
+
+for text in df["lyrics"]:
+    lyric = re.sub(r"\[(Verse ?\d?|(Pre-|Post-)?Chorus ?\d?)\]", "", text)
+
+    for word in unique_words:
+        lyric_split = lyric.lower().strip().split()
+        count = lyric_split.count(str(word))
+
+        if count > 0:
+            words[str(word)] += count
+
+sorted_by_values = dict(sorted(words.items(), key=lambda item: item[1]))
+
+file = Path(Path(__file__).parent, "words.json").open("w")
+json.dump(sorted_by_values, file)
