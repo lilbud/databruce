@@ -9,6 +9,8 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
+                UPDATE "setlists" SET position = null;
+                
                 UPDATE "setlists"
                 SET
                     position = t.position
@@ -64,6 +66,8 @@ async def debut_premiere(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
+                UPDATE "setlists" SET debut = false, premiere=false;
+
                 UPDATE
                     "setlists"
                 SET

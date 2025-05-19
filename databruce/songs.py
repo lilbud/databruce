@@ -22,6 +22,8 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
+                UPDATE "songs" SET first_played = NULL, last_played = NULL, num_plays_public = 0, num_plays_private = 0, num_plays_snippet = 0, opener = 0, closer = 0;
+
                 UPDATE "songs"
                 SET
                     first_played = t.first,
@@ -50,6 +52,8 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                 ) t
                 WHERE "songs"."id" = t.id;""",  # noqa: E501
             )
+
+            await conn.commit()
 
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:
             print("Could not complete operation:", e)
