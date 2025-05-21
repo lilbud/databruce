@@ -10,13 +10,16 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
             await cur.execute(
                 """
                 UPDATE "setlists" SET position = null;
-                
+
                 UPDATE "setlists"
                 SET
                     position = t.position
                 FROM
                 (
-                with event_sets AS (
+                WITH valid_events AS (
+                    SELECT event_id FROM setlists GROUP BY event_id HAVING count(song_id) > 1
+                ),
+                event_sets AS (
                     SELECT
                     s.event_id,
                     array_agg(DISTINCT s.set_name) as sets
@@ -24,34 +27,36 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                     GROUP BY s.event_id
                 ),
                 "min_max" AS (
+                    SELECT event_id, set_name, MIN(opener) as opener, MAX(closer) as closer FROM (
+                    SELECT
+                    s.event_id,
+                    s.set_name,
+                    MIN(s.id) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) AS opener,
+                    MAX(s.id) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) AS closer
+                    FROM setlists s
+                    WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])) GROUP BY 1,2
+                )
+                select * from (
                     SELECT
                     s.id,
                     s.event_id,
                     s.set_name,
-                    MIN(s.id) OVER (PARTITION BY s.event_id, s.set_name) AS opener,
-                    MAX(s.id) OVER (PARTITION BY s.event_id, s.set_name) AS closer
-                    FROM
-                    "setlists" s
-                    WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])
-                )
-                SELECT
-                    s.id,
-                    s.event_id,
-                    s.set_name,
                     CASE
-                    WHEN s.id = m.opener AND s.set_name = ANY(ARRAY['Show', 'Set 1']) THEN 'Show Opener'
-                    WHEN s.id = m.opener AND s.set_name <> ANY(ARRAY['Show', 'Set 1']) THEN s.set_name || ' Opener'
-                    WHEN s.id = m.closer AND 'Encore' = ANY(e.sets) AND s.set_name = ANY(ARRAY['Show', 'Set 2']) THEN 'Main Set Closer'
-                    WHEN s.id = m.closer AND s.song_num = MAX(s.song_num) OVER (PARTITION BY s.event_id) THEN 'Show Closer'
-                    WHEN s.id = m.closer THEN s.set_name || ' Closer'
-                    ELSE NULL
+                        WHEN s.id = m.opener AND s.set_name = ANY(ARRAY['Show', 'Set 1']) THEN 'Show Opener'
+                        WHEN s.id = m.opener AND s.set_name <> ANY(ARRAY['Show', 'Set 1']) THEN s.set_name || ' Opener'
+                        WHEN s.id = m.closer AND 'Encore' = ANY(e.sets) AND s.set_name = ANY(ARRAY['Show', 'Set 2']) THEN 'Main Set Closer'
+                        WHEN s.id = m.closer AND s.song_num = MAX(s.song_num) OVER (PARTITION BY s.event_id) THEN 'Show Closer'
+                        WHEN s.id = m.closer THEN s.set_name || ' Closer'
                     END as position
-                FROM setlists s
-                LEFT JOIN min_max m USING (id)
-                LEFT JOIN event_sets e ON e.event_id = s.event_id
-                ORDER BY s.event_id, s.song_num
+                    FROM setlists s
+                    LEFT JOIN valid_events v USING(event_id)
+                    LEFT JOIN min_max m USING(event_id)
+                    LEFT JOIN event_sets e USING(event_id)
+                    ORDER BY s.event_id, s.song_num
+                ) where position is not null
                 ) t
-                WHERE "setlists"."id" = t.id""",  # noqa: E501
+                WHERE "setlists"."id" = t.id
+                """,  # noqa: E501
             )
             await conn.commit()
         except (psycopg.OperationalError, psycopg.IntegrityError) as e:

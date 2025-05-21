@@ -58,31 +58,15 @@ async def get_event_type(event_url: str) -> str | None:
     return event_types.get(re.findall("(/.*:)", event_url)[0], None)
 
 
-async def get_venue_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int | None:
+async def get_venue_id(url: str, cur: psycopg.AsyncCursor) -> int | None:
     """Get ID by venue_url."""
     res = await cur.execute(
         """SELECT id FROM venues WHERE brucebase_url = %s""",
         (url,),
     )
 
-    try:
-        venue = await res.fetchone()
-        return venue["id"]
-    except TypeError:  # venue doesn't exist, insert and return new id
-        venue = await venue_parser(name, url, cur)
-
-        res = await cur.execute(
-            """INSERT INTO "venues"
-                (brucebase_url, name, city, state, country, continent, detail)
-                VALUES (%(id)s, %(name)s, %(city)s, %(state)s, %(country)s,
-                    %(continent)s, %(detail)s)
-                ON CONFLICT (brucebase_url, name, detail)
-                DO NOTHING RETURNING *""",
-            venue,
-        )
-
-        venue = await res.fetchone()
-        return venue["id"]
+    venue = await res.fetchone()
+    return venue["id"]
 
 
 async def scrape_event_page(
@@ -100,12 +84,8 @@ async def scrape_event_page(
         page_title = await html_parser.get_page_title(soup)
         event_date = await html_parser.get_event_date(event_url)
 
-        try:
-            venue = await html_parser.get_venue_url(soup)
-            venue_id = await get_venue_id(url=venue[0], name=venue[1], cur=cur)
-        except TypeError:
-            venue_id = None
-
+        venue_url = await html_parser.get_venue_url(soup)
+        venue_id = await get_venue_id(url=venue_url, cur=cur)
         show = await html_parser.get_show_descriptor_from_title(page_title)
 
         # if event not provided, either get from database or generate new one

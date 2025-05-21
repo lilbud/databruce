@@ -81,3 +81,6 @@
   - fixed event/setlist certainty script not counting for nugs releases
 2025-05-15:
   - removed bit in locations where events were only counted before the current date. When really, every event should be counted for the location stats unless it is cancelled.
+2025-05-20:
+  - Checked 1978 against Brucebase and added notes for things like Growin Up story.
+  - redid setlist position commands to ignore 1 song shows.

@@ -62,7 +62,7 @@ async def get_song_note(song: dict, segue: bool) -> str:  # noqa: FBT001
         return None
 
     try:
-        notes = [song["note"], titlecase(clean_song_note(song["link"]))]
+        notes = [song["note"], titlecase(await clean_song_note(song["link"]))]
 
         return ", ".join(filter(None, notes))
     except TypeError:
