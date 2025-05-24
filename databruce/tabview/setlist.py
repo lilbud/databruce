@@ -9,21 +9,6 @@ from titlecase import titlecase
 EVENT_TYPES = "/(gig|nogig|interview|rehearsal|nobruce|recording):"
 
 
-async def check_event_tags(
-    event_id: str,
-    song_tag: str,
-    cur: psycopg.AsyncCursor,
-) -> bool:
-    """Check TAGS by event_id for specified special song tag."""
-    res = await cur.execute(
-        """SELECT event_id FROM "tags" WHERE %s = ANY(string_to_array(tags, ', '))
-            AND event_id=%s""",
-        (song_tag, event_id),
-    )
-
-    return bool(await res.fetchone())
-
-
 async def get_set_name_from_url(event_url: str) -> str:
     """Return the url 'category', which is the default set name."""
     try:
@@ -82,7 +67,7 @@ async def is_song_segue(i: int, list_size: int) -> bool:
 
 async def check_set_order(header_list: list[Tag]) -> list:
     """Get the proper order of sets by returning a list of the set_header p elements."""
-    return [titlecase(p.get_text()) for p in header_list]
+    return [p.get_text() for p in header_list]
 
 
 async def rearrange_sets(setlist: dict, proper_set_order: list) -> dict:
@@ -191,23 +176,6 @@ async def get_song_info(
     return song_id, song_note, segue
 
 
-async def setlist_check(
-    tab_content: Tag,
-    event_id: str,
-    cur: psycopg.AsyncCursor,
-) -> None:
-    """Check for incomplete setlists.
-
-    Checks if the setlist tab of an event has a note regarding
-    the setlist being incomplete. Then updates events with this info
-    """
-    if tab_content.find("em", string=re.compile(".*incomplete.*", re.IGNORECASE)):
-        await cur.execute(
-            """UPDATE "events" SET setlist_certainty=%s WHERE event_id=%s""",
-            ("Incomplete", event_id),
-        )
-
-
 async def get_setlist(
     tab_content: Tag,
     event_id: str,
@@ -224,10 +192,6 @@ async def get_setlist(
     # p > strong - set name (note: not always there)
     # ul/ol > li - song_list, can either be ul or ol
     sets = await parse_setlists(tab_content, default_set_name)
-
-    # checks setlist tab for note on incomplete setlist.
-    # updates EVENTS to say either 'CONFIRMED' or 'INCOMPLETE'
-    await setlist_check(tab_content, event_id, cur)
 
     for set_name, set_items in sets.items():
         for index, item in enumerate(set_items, 1):

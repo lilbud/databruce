@@ -27,14 +27,21 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                     GROUP BY s.event_id
                 ),
                 "min_max" AS (
-                    SELECT event_id, set_name, MIN(opener) as opener, MAX(closer) as closer FROM (
-                    SELECT
+                SELECT
+                    event_id,
+                set_name,
+                (SELECT id from setlists where event_id = t.event_id and song_num = min(opener) LIMIT 1) as opener,
+                (SELECT id from setlists where event_id = t.event_id and song_num = max(closer) LIMIT 1) as closer
+                FROM (
+                SELECT
                     s.event_id,
                     s.set_name,
-                    MIN(s.id) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) AS opener,
-                    MAX(s.id) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) AS closer
-                    FROM setlists s
-                    WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])) GROUP BY 1,2
+                    MIN(s.song_num) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) as opener,
+                    MAX(s.song_num) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) as closer
+                FROM setlists s
+                WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])
+                ) t
+                GROUP BY 1,2
                 )
                 select * from (
                     SELECT
@@ -45,7 +52,7 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                         WHEN s.id = m.opener AND s.set_name = ANY(ARRAY['Show', 'Set 1']) THEN 'Show Opener'
                         WHEN s.id = m.opener AND s.set_name <> ANY(ARRAY['Show', 'Set 1']) THEN s.set_name || ' Opener'
                         WHEN s.id = m.closer AND 'Encore' = ANY(e.sets) AND s.set_name = ANY(ARRAY['Show', 'Set 2']) THEN 'Main Set Closer'
-                        WHEN s.id = m.closer AND s.song_num = MAX(s.song_num) OVER (PARTITION BY s.event_id) THEN 'Show Closer'
+                        WHEN s.id = m.closer AND s.song_num = MAX(s.song_num) OVER (PARTITION BY s.event_id ORDER BY s.song_num) THEN 'Show Closer'
                         WHEN s.id = m.closer THEN s.set_name || ' Closer'
                     END as position
                     FROM setlists s

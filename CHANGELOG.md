@@ -84,3 +84,9 @@
 2025-05-20:
   - Checked 1978 against Brucebase and added notes for things like Growin Up story.
   - redid setlist position commands to ignore 1 song shows.
+2025-05-22:
+  - Added LOHAD EP to releases
+  - fixed setlist notes not counting releases
+2025-05-23:
+  - started moving database to supabase. The bot points to it now, all that's left is updating the GH workflow.
+  - corrected an issue with the `position` update. It wasn't sorting by song_num properly, and was marking the max id for a set as the closer. Which in many cases is correct, but if new songs were added after the fact, those got marked instead. Should be proper now.

@@ -10,6 +10,7 @@ import ftfy
 import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
+from bs4 import Tag
 from database import db
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
@@ -117,37 +118,54 @@ def manual_onstage():
             )
 
 
-import pandas as pd
+def format_song_note(note: Tag) -> str:
+    try:
+        return re.sub(r"^[\s\(\)]|[\s\(\)]$", "", note.get_text())
+    except AttributeError:
+        return None
 
-df = pd.read_parquet(
-    r"C:\Users\bvw20\Desktop\train-00000-of-00001.parquet",
-)
 
-print(df)
-unique_words = set()
-for text in df["lyrics"]:
-    lyric = re.sub(r"\[(Verse ?\d?|(Pre-|Post-)?Chorus ?\d?)\]", "", text)
+def get_song_id(url: Tag, cur: psycopg.Cursor) -> int:
+    url = url.get("href")
 
-    for word in lyric.split():
-        word = re.sub(r"[\.,\?\(\)\!\;\[\]]|^\"|\"$", "", word)
-        unique_words.add(word.strip().lower())
+    return cur.execute(
+        """SELECT id FROM songs WHERE brucebase_url = %s""",
+        (url,),
+    ).fetchone()["id"]
 
-words = {}
 
-for word in unique_words:
-    words[str(word)] = 0
+with Path.open(Path(Path(__file__).parent, "test.html")) as file:
+    soup = bs4("\n".join(file.readlines()), "lxml")
+    set_names = soup.select("p > strong")
+    setlist = {}
+    # setlist format: some have ul/ol blocks separated by P elements which are the name of the set. Usually only soundcheck/rehearsal/pre-show and show
 
-for text in df["lyrics"]:
-    lyric = re.sub(r"\[(Verse ?\d?|(Pre-|Post-)?Chorus ?\d?)\]", "", text)
+    with db.load_db() as conn:
+        cur = conn.cursor()
 
-    for word in unique_words:
-        lyric_split = lyric.lower().strip().split()
-        count = lyric_split.count(str(word))
+        song_num = 1
 
-        if count > 0:
-            words[str(word)] += count
+        for set in set_names:
+            set_name = set.get_text()
 
-sorted_by_values = dict(sorted(words.items(), key=lambda item: item[1]))
+            for item in set.find_next(["ul", "ol"]).find_all("li"):
+                segue = False
+                if len(item.find_all("a")) == 1:
+                    song_id = get_song_id(item.find("a"), cur)
+                    song_note = format_song_note(item.span)
 
-file = Path(Path(__file__).parent, "words.json").open("w")
-json.dump(sorted_by_values, file)
+                    print(set_name, song_num, song_id, song_note, segue)
+                    song_num += 1
+                elif len(item.find_all("a")) > 1 and not item.find(["ul", "ol"]):
+                    sequence = item.find_all("a")
+                    for seq_index, song in enumerate(sequence):
+                        song_id = get_song_id(song, cur)
+                        song_note = format_song_note(item.span)
+                        segue = False
+
+                        # check song segue
+                        if seq_index <= len(sequence) - 2:
+                            segue = True
+
+                        print(set_name, song_num, song_id, song_note, segue)
+                        song_num += 1
