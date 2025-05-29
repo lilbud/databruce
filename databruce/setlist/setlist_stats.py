@@ -39,7 +39,7 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                     MIN(s.song_num) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) as opener,
                     MAX(s.song_num) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) as closer
                 FROM setlists s
-                WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show'])
+                WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show']) AND instrumental IS FALSE
                 ) t
                 GROUP BY 1,2
                 )

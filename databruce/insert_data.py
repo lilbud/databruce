@@ -72,12 +72,13 @@ async def update_existing(pool: AsyncConnectionPool, client: httpx.AsyncClient) 
 
 async def update_stats(pool: AsyncConnectionPool) -> None:
     """Update various statistics."""
+    await certainty(pool)
     await debut_premiere(pool)
     await calc_song_gap(pool)
-    await update_song_info(pool)
-    await opener_closer(pool)
-    await certainty(pool)
-    await sessions(pool)
+    # await update_song_info(pool)
+    # await opener_closer(pool)
+
+    # await sessions(pool)
 
 
 async def main(pool: AsyncConnectionPool) -> None:
@@ -86,7 +87,7 @@ async def main(pool: AsyncConnectionPool) -> None:
 
     async with pool, client:
         # await update_get_new(pool, client)
-        await update_existing(pool, client)
+        # await update_existing(pool, client)
         await update_stats(pool)
 
 
