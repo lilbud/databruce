@@ -90,3 +90,5 @@
 2025-05-23:
   - started moving database to supabase. The bot points to it now, all that's left is updating the GH workflow.
   - corrected an issue with the `position` update. It wasn't sorting by song_num properly, and was marking the max id for a set as the closer. Which in many cases is correct, but if new songs were added after the fact, those got marked instead. Should be proper now.
+2025-06-01:
+  - mistakenly thought I could just move over to supabase without any issues. I was wrong. Apparently it just isn't possible to restore a dump of a local database to supabase and expect it to just function. At best, half the tables just get nuked for no reason at all. At worst, some tables just don't make it over. Was hoping to be able to use supabase when the heroku credits run out but that might not happen unless I can find a reliable way to load a pg_dump.

@@ -9,58 +9,34 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "setlists" SET position = null;
+                UPDATE setlists SET position = null;
 
-                UPDATE "setlists"
+                UPDATE setlists
                 SET
                     position = t.position
-                FROM
-                (
-                WITH valid_events AS (
-                    SELECT event_id FROM setlists GROUP BY event_id HAVING count(song_id) > 1
-                ),
-                event_sets AS (
-                    SELECT
-                    s.event_id,
-                    array_agg(DISTINCT s.set_name) as sets
-                    FROM setlists s
-                    GROUP BY s.event_id
-                ),
-                "min_max" AS (
-                SELECT
-                    event_id,
-                set_name,
-                (SELECT id from setlists where event_id = t.event_id and song_num = min(opener) LIMIT 1) as opener,
-                (SELECT id from setlists where event_id = t.event_id and song_num = max(closer) LIMIT 1) as closer
                 FROM (
-                SELECT
+                SELECT id, event_id, position FROM (
+                SELECT 
                     s.event_id,
                     s.set_name,
-                    MIN(s.song_num) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) as opener,
-                    MAX(s.song_num) OVER (PARTITION BY s.event_id, s.set_name ORDER BY s.song_num) as closer
-                FROM setlists s
-                WHERE s.set_name = ANY(ARRAY['Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show']) AND instrumental IS FALSE
-                ) t
-                GROUP BY 1,2
-                )
-                select * from (
-                    SELECT
                     s.id,
-                    s.event_id,
-                    s.set_name,
-                    CASE
-                        WHEN s.id = m.opener AND s.set_name = ANY(ARRAY['Show', 'Set 1']) THEN 'Show Opener'
-                        WHEN s.id = m.opener AND s.set_name <> ANY(ARRAY['Show', 'Set 1']) THEN s.set_name || ' Opener'
-                        WHEN s.id = m.closer AND 'Encore' = ANY(e.sets) AND s.set_name = ANY(ARRAY['Show', 'Set 2']) THEN 'Main Set Closer'
-                        WHEN s.id = m.closer AND s.song_num = MAX(s.song_num) OVER (PARTITION BY s.event_id ORDER BY s.song_num) THEN 'Show Closer'
-                        WHEN s.id = m.closer THEN s.set_name || ' Closer'
-                    END as position
-                    FROM setlists s
-                    LEFT JOIN valid_events v USING(event_id)
-                    LEFT JOIN min_max m USING(event_id)
-                    LEFT JOIN event_sets e USING(event_id)
-                    ORDER BY s.event_id, s.song_num
-                ) where position is not null
+                    CASE 
+                        WHEN set_name IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN 'Show Opener'
+                        WHEN set_name NOT IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Opener'
+                        WHEN set_name NOT IN ('Show', 'Set 2') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Closer'
+                        WHEN set_name IN ('Show', 'Set 2') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) AND event_id IN (SELECT distinct event_id FROM setlists WHERE set_name = 'Encore') THEN 'Main Set Closer'
+                        WHEN song_num = MAX(song_num) OVER (PARTITION BY event_id) THEN 'Show Closer'
+                        ELSE NULL
+                    END AS position
+                FROM 
+                    setlists s
+                LEFT JOIN events e USING(event_id)
+                WHERE s.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')
+                AND e.setlist_certainty = 'Confirmed'
+                AND s.event_id IN (SELECT event_id FROM setlists GROUP BY 1 HAVING COUNT(song_id) > 2)
+                ORDER BY 
+                    s.event_id, s.song_num
+                ) t WHERE t.position is not null
                 ) t
                 WHERE "setlists"."id" = t.id
                 """,  # noqa: E501

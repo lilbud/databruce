@@ -16,7 +16,7 @@ async def get_client() -> httpx.AsyncClient:
         "Cookie": "wikidot_token7=0",
     }
 
-    return httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=30)
+    return httpx.AsyncClient(headers=headers, timeout=30)
 
 
 async def get(url: str, client: httpx.AsyncClient) -> httpx.Response:

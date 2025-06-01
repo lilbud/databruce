@@ -75,8 +75,8 @@ async def update_stats(pool: AsyncConnectionPool) -> None:
     await certainty(pool)
     await debut_premiere(pool)
     await calc_song_gap(pool)
-    # await update_song_info(pool)
-    # await opener_closer(pool)
+    await update_song_info(pool)
+    await opener_closer(pool)
 
     # await sessions(pool)
 

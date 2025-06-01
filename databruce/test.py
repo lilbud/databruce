@@ -15,6 +15,7 @@ from database import db
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
+from tools.scraping import scraper
 from venues import venue_parser
 
 load_dotenv()
@@ -134,38 +135,50 @@ def get_song_id(url: Tag, cur: psycopg.Cursor) -> int:
     ).fetchone()["id"]
 
 
-with Path.open(Path(Path(__file__).parent, "test.html")) as file:
-    soup = bs4("\n".join(file.readlines()), "lxml")
-    set_names = soup.select("p > strong")
-    setlist = {}
-    # setlist format: some have ul/ol blocks separated by P elements which are the name of the set. Usually only soundcheck/rehearsal/pre-show and show
+# with Path.open(Path(Path(__file__).parent, "test.html")) as file:
+#     soup = bs4("\n".join(file.readlines()), "lxml")
+#     set_names = soup.select("p > strong")
+#     setlist = {}
+#     # setlist format: some have ul/ol blocks separated by P elements which are the name of the set. Usually only soundcheck/rehearsal/pre-show and show
 
-    with db.load_db() as conn:
-        cur = conn.cursor()
+#     with db.load_db() as conn:
+#         cur = conn.cursor()
 
-        song_num = 1
+#         song_num = 1
 
-        for set in set_names:
-            set_name = set.get_text()
+#         for set in set_names:
+#             set_name = set.get_text()
 
-            for item in set.find_next(["ul", "ol"]).find_all("li"):
-                segue = False
-                if len(item.find_all("a")) == 1:
-                    song_id = get_song_id(item.find("a"), cur)
-                    song_note = format_song_note(item.span)
+#             for item in set.find_next(["ul", "ol"]).find_all("li"):
+#                 segue = False
+#                 if len(item.find_all("a")) == 1:
+#                     song_id = get_song_id(item.find("a"), cur)
+#                     song_note = format_song_note(item.span)
 
-                    print(set_name, song_num, song_id, song_note, segue)
-                    song_num += 1
-                elif len(item.find_all("a")) > 1 and not item.find(["ul", "ol"]):
-                    sequence = item.find_all("a")
-                    for seq_index, song in enumerate(sequence):
-                        song_id = get_song_id(song, cur)
-                        song_note = format_song_note(item.span)
-                        segue = False
+#                     print(set_name, song_num, song_id, song_note, segue)
+#                     song_num += 1
+#                 elif len(item.find_all("a")) > 1 and not item.find(["ul", "ol"]):
+#                     sequence = item.find_all("a")
+#                     for seq_index, song in enumerate(sequence):
+#                         song_id = get_song_id(song, cur)
+#                         song_note = format_song_note(item.span)
+#                         segue = False
 
-                        # check song segue
-                        if seq_index <= len(sequence) - 2:
-                            segue = True
+#                         # check song segue
+#                         if seq_index <= len(sequence) - 2:
+#                             segue = True
 
-                        print(set_name, song_num, song_id, song_note, segue)
-                        song_num += 1
+#                         print(set_name, song_num, song_id, song_note, segue)
+#                         song_num += 1
+
+
+async def main():
+    client = await scraper.get_client()
+    res = await scraper.get("https://auda.audio/TsukoG", client)
+
+    if res:
+        soup = bs4(res.content, "lxml")
+        print(soup.prettify())
+
+
+asyncio.run(main())

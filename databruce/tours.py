@@ -26,8 +26,8 @@ async def update_tour_legs(pool: AsyncConnectionPool) -> None:
                     MAX(e.event_id) AS last,
                     COUNT(distinct(e.event_id)) AS num_shows,
                     COUNT(distinct(s.song_id)) AS num_songs
-                FROM setlists s
-                LEFT JOIN events e USING(event_id)
+                FROM events e
+                LEFT JOIN setlists s USING(event_id)
                 GROUP BY e.tour_leg
                 ) t
                 WHERE "tour_legs"."id" = t.id
