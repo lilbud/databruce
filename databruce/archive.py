@@ -26,7 +26,7 @@ async def get_list_from_archive(
                         item["publicdate"],
                         "%Y-%m-%dT%H:%M:%SZ",
                     )
-                    url = f"https://archive.org/details/{item['identifier']}"
+                    url = f"{item['identifier']}"
 
                     await cur.execute(
                         """INSERT INTO archive_links (event_id, archive_url, created_at)

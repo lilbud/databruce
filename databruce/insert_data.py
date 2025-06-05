@@ -72,7 +72,7 @@ async def update_existing(pool: AsyncConnectionPool, client: httpx.AsyncClient) 
 
 async def update_stats(pool: AsyncConnectionPool) -> None:
     """Update various statistics."""
-    await certainty(pool)
+    # await certainty(pool)
     await debut_premiere(pool)
     await calc_song_gap(pool)
     await update_song_info(pool)
@@ -86,8 +86,8 @@ async def main(pool: AsyncConnectionPool) -> None:
     client = await scraper.get_client()
 
     async with pool, client:
-        # await update_get_new(pool, client)
-        # await update_existing(pool, client)
+        await update_get_new(pool, client)
+        await update_existing(pool, client)
         await update_stats(pool)
 
 
