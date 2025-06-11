@@ -22,31 +22,20 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
         try:
             await cur.execute(
                 """
-                UPDATE "songs" SET first_played = NULL, last_played = NULL, num_plays_public = 0, num_plays_private = 0, num_plays_snippet = 0, opener = 0, closer = 0;
+                UPDATE "songs" SET num_plays_snippet = 0, opener = 0, closer = 0;
 
                 UPDATE "songs"
                 SET
-                    first_played = t.first,
-                    last_played = t.last,
-                    num_plays_public = t.public_count,
-                    num_plays_private = t.private_count,
-                    num_plays_snippet = t.snippet_count,
                     opener = t.opener_count,
                     closer = t.closer_count
                 FROM (
                     SELECT
                         s.id,
-                        s.brucebase_url,
-                        MIN(s1.event_id) FILTER (WHERE s1.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS first,
-                        MAX(s1.event_id) FILTER (WHERE s1.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS last,
-                        COUNT(distinct s1.id) FILTER(WHERE s1.set_name <> ALL(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS public_count,
-                        COUNT(distinct s1.id) FILTER(WHERE s1.set_name = ANY(ARRAY['Soundcheck', 'Recording', 'Rehearsal', 'Interview'])) AS private_count,
-                        COUNT(distinct s2.event_id) AS snippet_count,
+
                         COUNT(*) FILTER (WHERE s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
                         COUNT(*) FILTER (WHERE s1.position = 'Show Closer' AND e.setlist_certainty = 'Confirmed') AS closer_count
                     FROM songs s
                     LEFT JOIN setlists s1 ON s1.song_id = s.id
-                    LEFT JOIN snippets s2 ON s2.snippet_id = s.id
                     LEFT JOIN events e ON e.event_id = s1.event_id
                     GROUP BY s.id
                 ) t

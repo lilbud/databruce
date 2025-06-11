@@ -52,7 +52,7 @@ async def get_new_setlists(
 
 async def update_get_new(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Pull new data from Brucebase and insert."""
-    await get_songs(pool, client)
+    # await get_songs(pool, client)
     await get_events(pool, client)
     await get_covers(pool, client)
     await get_list_from_archive(pool, client)

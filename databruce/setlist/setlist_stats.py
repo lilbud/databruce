@@ -16,7 +16,7 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                     position = t.position
                 FROM (
                 SELECT id, event_id, position FROM (
-                SELECT 
+                SELECT
                     s.event_id,
                     s.set_name,
                     s.id,
@@ -28,13 +28,15 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                         WHEN song_num = MAX(song_num) OVER (PARTITION BY event_id) THEN 'Show Closer'
                         ELSE NULL
                     END AS position
-                FROM 
+                FROM
                     setlists s
                 LEFT JOIN events e USING(event_id)
+                LEFT JOIN bands b ON b.id = e.artist
                 WHERE s.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')
                 AND e.setlist_certainty = 'Confirmed'
                 AND s.event_id IN (SELECT event_id FROM setlists GROUP BY 1 HAVING COUNT(song_id) > 2)
-                ORDER BY 
+                AND b.springsteen_band IS TRUE
+                ORDER BY
                     s.event_id, s.song_num
                 ) t WHERE t.position is not null
                 ) t
