@@ -23,7 +23,7 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                     CASE 
                         WHEN set_name IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN 'Show Opener'
                         WHEN set_name NOT IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Opener'
-                        WHEN set_name NOT IN ('Show', 'Set 2') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Closer'
+                        WHEN set_name NOT IN ('Show', 'Set 2', 'Encore') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Closer'
                         WHEN set_name IN ('Show', 'Set 2') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) AND event_id IN (SELECT distinct event_id FROM setlists WHERE set_name = 'Encore') THEN 'Main Set Closer'
                         WHEN song_num = MAX(song_num) OVER (PARTITION BY event_id) THEN 'Show Closer'
                         ELSE NULL

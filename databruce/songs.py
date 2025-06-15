@@ -27,17 +27,20 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                 UPDATE "songs"
                 SET
                     opener = t.opener_count,
-                    closer = t.closer_count
+                    closer = t.closer_count,
+                    num_plays_snippet = t.snippet_count
                 FROM (
                     SELECT
                         s.id,
-
-                        COUNT(*) FILTER (WHERE s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
-                        COUNT(*) FILTER (WHERE s1.position = 'Show Closer' AND e.setlist_certainty = 'Confirmed') AS closer_count
+                        COUNT(s1.*) FILTER (WHERE s1.song_id = s.id AND s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
+                        COUNT(s1.*) FILTER (WHERE s1.song_id = s.id AND s1.position = 'Show Closer' AND e.setlist_certainty = 'Confirmed') AS closer_count,
+                        COUNT(sn.*) AS snippet_count
                     FROM songs s
                     LEFT JOIN setlists s1 ON s1.song_id = s.id
+                    LEFT JOIN snippets sn ON sn.snippet_id = s.id
                     LEFT JOIN events e ON e.event_id = s1.event_id
-                    GROUP BY s.id
+                    GROUP BY 1
+                    ORDER BY 1
                 ) t
                 WHERE "songs"."id" = t.id;""",  # noqa: E501
             )
