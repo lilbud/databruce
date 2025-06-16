@@ -12,7 +12,7 @@ __pycache__
 *.tar
 *.tar
 \_schema\*
-/databruce/database/_schema
+databruce/database/_schema
 databruce/database/_schema/psql load command.txt
 databruce/database/_schema/out.tar
 *.tar
@@ -21,4 +21,4 @@ test.py
 list.txt
 databruce/test.py
 databruce/musicbrainz_venue_search.py
-*.sql
+databruce/database/*.sql
