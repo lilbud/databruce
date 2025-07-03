@@ -14,7 +14,7 @@ from archive import get_list_from_archive
 from covers import get_covers
 from database import db
 from event_page import scrape_event_page
-from events import certainty, get_events, sessions
+from events import certainty, event_num_fix, get_events, sessions
 from locations import update_locations
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
@@ -53,7 +53,7 @@ async def get_new_setlists(
 async def update_get_new(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Pull new data from Brucebase and insert."""
     # await get_songs(pool, client)
-    await get_events(pool, client)
+    # await get_events(pool, client)
     await get_covers(pool, client)
     await get_list_from_archive(pool, client)
 
@@ -61,10 +61,11 @@ async def update_get_new(pool: AsyncConnectionPool, client: httpx.AsyncClient) -
 async def update_existing(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
     """Update existing counts in database."""
     await update_locations(pool)
+    await event_num_fix(pool)
     await update_tours(pool)
     await update_tour_runs(pool)
     await update_tour_legs(pool)
-    await get_new_setlists(pool, client)
+    # await get_new_setlists(pool, client)
     await update_venue_count(pool)
     await relations.update_relations(pool)
     await bands.update_bands(pool)
@@ -86,8 +87,8 @@ async def main(pool: AsyncConnectionPool) -> None:
     client = await scraper.get_client()
 
     async with pool, client:
-        # await update_get_new(pool, client)
-        # await update_existing(pool, client)
+        await update_get_new(pool, client)
+        await update_existing(pool, client)
         await update_stats(pool)
 
 

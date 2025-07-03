@@ -140,25 +140,26 @@ async def get_events_from_db(cur: psycopg.AsyncCursor) -> list["str"]:
     return [row["brucebase_url"] for row in await res.fetchall()]
 
 
-async def event_num_fix(cur: psycopg.AsyncCursor) -> None:
+async def event_num_fix(pool: AsyncConnectionPool) -> None:
     """Update event_num after new events inserted."""
-    await cur.execute(
-        """
-        UPDATE "events" SET event_num = NULL;
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            UPDATE "events" SET event_num = NULL;
 
-        UPDATE "events"
-        SET
-            event_num=t.num
-        FROM (
-            SELECT
-                row_number() OVER (ORDER BY event_id) AS num,
-                event_id
-            FROM "events"
-        WHERE brucebase_url NOT LIKE '/nogig:%'
-        ) t
-        WHERE "events".event_id=t.event_id;
-        """,
-    )
+            UPDATE "events"
+            SET
+                event_num=t.num
+            FROM (
+                SELECT
+                    row_number() OVER (ORDER BY event_id) AS num,
+                    event_id
+                FROM "events"
+            WHERE brucebase_url NOT LIKE '/nogig:%'
+            ) t
+            WHERE "events".event_id=t.event_id;
+            """,
+        )
 
 
 async def get_events(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
@@ -228,6 +229,6 @@ async def get_events(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> No
                         ) as e:
                             print("EVENTS: Could not complete operation:", e)
 
-        # fix event numbers after insert
-        await event_num_fix(cur)
-        print("Got Events")
+    # fix event numbers after insert
+    await event_num_fix(pool)
+    print("Got Events")
