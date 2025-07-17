@@ -93,7 +93,7 @@ async def update_tours(pool: AsyncConnectionPool) -> None:
                         e.tour_id,
                         MIN(e.event_id) FILTER (WHERE e.event_type NOT SIMILAR TO 'Rescheduled_*') AS first,
                         MAX(e.event_id) AS last,
-                        COUNT(DISTINCT(s.song_id)) FILTER (WHERE s.set_name <> ANY(ARRAY['Soundcheck', 'Rehearsal'])) AS song_count,
+                        COUNT(DISTINCT(s.song_id)) FILTER (WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Rehearsal'])) AS song_count,
                         COUNT(DISTINCT(e.event_id)) FILTER (WHERE e.event_type NOT SIMILAR TO 'Rescheduled_*') AS event_count,
                         COUNT(DISTINCT(e.tour_leg)) FILTER (WHERE e.event_type NOT SIMILAR TO 'Rescheduled_*') AS leg_count
                     FROM "events" e
