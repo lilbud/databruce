@@ -2,7 +2,9 @@
 
 import asyncio
 import json
+import random
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -174,11 +176,29 @@ def get_song_id(url: Tag, cur: psycopg.Cursor) -> int:
 
 async def main():
     client = await scraper.get_client()
-    res = await scraper.get("https://auda.audio/TsukoG", client)
 
-    if res:
-        soup = bs4(res.content, "lxml")
-        print(soup.prettify())
+    with db.load_db() as conn:
+        cur = conn.cursor()
+
+        songs = cur.execute(
+            """SELECT id, brucebase_url as url FROM songs WHERE brucebase_url IS NOT NULL AND id > 1696""",
+        )
+
+        for i in songs.fetchall():
+            print(i["url"])
+
+            test = await client.get(f"http://brucebase.wikidot.com{i['url']}")
+
+            if test.status_code == 404:
+                print("removing url as it 404s")
+
+                cur.execute(
+                    """UPDATE songs SET brucebase_url = null WHERE id = %s""",
+                    (i["id"],),
+                )
+
+            print()
+            await asyncio.sleep(random.randint(1, 2))
 
 
 asyncio.run(main())
