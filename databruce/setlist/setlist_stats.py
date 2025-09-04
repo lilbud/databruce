@@ -20,13 +20,13 @@ async def opener_closer(pool: AsyncConnectionPool) -> None:
                     s.event_id,
                     s.set_name,
                     s.id,
-                    CASE 
+                    CASE
                         WHEN set_name IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN 'Show Opener'
                         WHEN set_name NOT IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Opener'
                         WHEN set_name NOT IN ('Show', 'Set 2', 'Encore') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Closer'
                         WHEN set_name IN ('Show', 'Set 2') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) AND event_id IN (SELECT distinct event_id FROM setlists WHERE set_name = 'Encore') THEN 'Main Set Closer'
                         WHEN song_num = MAX(song_num) OVER (PARTITION BY event_id) THEN 'Show Closer'
-                        ELSE NULL
+                        ELSE set_name
                     END AS position
                 FROM
                     setlists s
@@ -114,3 +114,37 @@ async def calc_song_gap(pool: AsyncConnectionPool) -> None:
             print("Could not complete operation:", e)
         else:
             print("Got song gap stats")
+
+
+async def band_premiere(pool: AsyncConnectionPool) -> None:
+    """Calculate the FTP for a song for each band that played it."""
+    async with pool.connection() as conn, conn.cursor() as cur:
+        try:
+            await cur.execute(
+                """
+                UPDATE setlists SET band_premiere = false;
+
+                UPDATE setlists SET band_premiere = true where id in (
+                    SELECT
+                        t.setlist_id as id
+                    FROM (
+                        SELECT
+                        s.id as setlist_id,
+                        s.song_id,
+                        e.artist,
+                        ROW_NUMBER() OVER (PARTITION BY e.artist, s.song_id ORDER BY e.event_id, s.id) AS rn
+                        FROM setlists s
+                        LEFT JOIN events e ON s.event_id = e.event_id
+                        LEFT JOIN bands b ON b.id = e.artist
+                        WHERE s.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore') AND b.springsteen_band is true
+                    ) t
+                    WHERE t.rn = 1
+                )
+                """,
+            )
+
+            await conn.commit()
+        except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+            print("Could not complete operation:", e)
+        else:
+            print("Got band FTP")

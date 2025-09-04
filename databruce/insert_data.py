@@ -19,7 +19,12 @@ from locations import update_locations
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from relations import bands, relations
-from setlist.setlist_stats import calc_song_gap, debut_premiere, opener_closer
+from setlist.setlist_stats import (
+    band_premiere,
+    calc_song_gap,
+    debut_premiere,
+    opener_closer,
+)
 from songs import get_songs, update_song_info
 from tools.scraping import scraper
 from tours import update_tour_legs, update_tour_runs, update_tours
@@ -73,12 +78,12 @@ async def update_existing(pool: AsyncConnectionPool, client: httpx.AsyncClient) 
 
 async def update_stats(pool: AsyncConnectionPool) -> None:
     """Update various statistics."""
-    # await certainty(pool)
     await debut_premiere(pool)
     await calc_song_gap(pool)
     await update_song_info(pool)
-    await opener_closer(pool)
-
+    # await band_premiere(pool)
+    # await opener_closer(pool)
+    # await certainty(pool)
     # await sessions(pool)
 
 

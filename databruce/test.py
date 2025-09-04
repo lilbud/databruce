@@ -185,32 +185,10 @@ def filehost(link: str) -> str:
 
 
 def main():
-    df = pd.read_csv(r"C:\Users\bvw20\Desktop\DDG.csv").fillna("")
+    file = json.load(Path(Path(__file__).parent, "test.json").open("r"))
 
-    with Path("file.md").open("w") as file:
-        for row in df.itertuples():
-            date = row.date
-            release = ftfy.fix_encoding(row.release)
-            link = filehost(row.link)
-            link2 = filehost(row.link2)
-            link3 = filehost(row.link3)
-            artwork = filehost(row.artwork)
-
-            file.write(f"### {date} - {release}\n")
-
-            if link:
-                file.write(f"- Link: {link}\n")
-
-            if link2:
-                file.write(f"- Link 2: {link2}\n")
-
-            if link3:
-                file.write(f"- Link 3: {link3}\n")
-
-            if artwork:
-                file.write(f"- Artwork: {artwork}\n")
-
-            file.write("\n")
+    for i in file["items"]:
+        print(re.sub(" -.*", "", i["name"]), "|", i["id"])
 
 
 main()

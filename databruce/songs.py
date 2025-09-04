@@ -38,10 +38,10 @@ async def update_song_info(pool: AsyncConnectionPool) -> None:
                         s.id,
                         MIN(s1.event_id) FILTER (WHERE s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) AS first_played,
                         MAX(s1.event_id) FILTER (WHERE s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) AS last_played,
-                        COUNT(distinct s1.event_id) FILTER (WHERE s1.song_id = s.id AND s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) as public_count,
-                        COUNT(distinct s1.event_id) FILTER (WHERE s1.song_id = s.id AND s1.set_name NOT IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) as private_count,
-                        COUNT(distinct s1.event_id) FILTER (WHERE s1.song_id = s.id AND s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
-                        COUNT(distinct s1.event_id) FILTER (WHERE s1.song_id = s.id AND s1.position = 'Show Closer' AND e.setlist_certainty = 'Confirmed') AS closer_count,
+                        COUNT(distinct s1.id) FILTER (WHERE s1.song_id = s.id AND s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) as public_count,
+                        COUNT(distinct s1.id) FILTER (WHERE s1.song_id = s.id AND s1.set_name NOT IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) as private_count,
+                        COUNT(distinct s1.id) FILTER (WHERE s1.song_id = s.id AND s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
+                        COUNT(distinct s1.id) FILTER (WHERE s1.song_id = s.id AND s1.position = 'Show Closer' AND e.setlist_certainty = 'Confirmed') AS closer_count,
                         COUNT(distinct sn.*) FILTER (WHERE sn.snippet_id = s.id) AS snippet_count
                     FROM songs s
                     LEFT JOIN setlists s1 ON s1.song_id = s.id
