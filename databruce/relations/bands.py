@@ -21,13 +21,13 @@ async def update_bands(pool: AsyncConnectionPool) -> None:
                 FROM
                 (
                     SELECT
-                    o.band_id AS artist,
+                        o.band_id AS artist,
                         MIN(o.event_id) AS first,
                         MAX(o.event_id) AS last,
-                    count(distinct event_id) AS num
+                        count(distinct event_id) AS num
                     FROM
                     "onstage" o
-                        GROUP BY o.band_id
+                    GROUP BY o.band_id
                 ) t
                 WHERE
                 "bands".id = t.artist;

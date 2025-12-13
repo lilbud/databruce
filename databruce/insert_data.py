@@ -60,7 +60,7 @@ async def update_get_new(pool: AsyncConnectionPool, client: httpx.AsyncClient) -
     # await get_songs(pool, client)
     # await get_events(pool, client)
     await get_covers(pool, client)
-    await get_list_from_archive(pool, client)
+    # await get_list_from_archive(pool, client)
 
 
 async def update_existing(pool: AsyncConnectionPool, client: httpx.AsyncClient) -> None:
@@ -92,9 +92,10 @@ async def main(pool: AsyncConnectionPool) -> None:
     client = await scraper.get_client()
 
     async with pool, client:
-        # await update_get_new(pool, client)
+        await update_get_new(pool, client)
         await update_existing(pool, client)
         await update_stats(pool)
+        # await calc_song_gap(pool)
 
 
 if __name__ == "__main__":

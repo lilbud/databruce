@@ -1,15 +1,16 @@
 """File for testing random code/functions/ideas."""
 
 import asyncio
+import datetime
 import json
 import random
 import re
 import time
-from datetime import datetime
 from pathlib import Path
 
 import ftfy
 import httpx
+import nameparser
 import pandas as pd
 import psycopg
 from bs4 import BeautifulSoup as bs4
@@ -184,11 +185,98 @@ def filehost(link: str) -> str:
     return None
 
 
-def main():
-    file = json.load(Path(Path(__file__).parent, "test.json").open("r"))
+import io
 
-    for i in file["items"]:
-        print(re.sub(" -.*", "", i["name"]), "|", i["id"])
+import html_to_markdown
+import slugify
+from html2text import html2text
+from markdownify import markdownify as md
+
+# def main():
+#     headers = {
+#         "User-Agent": generate_user_agent(),
+#         "Cookie": "wikidot_token7=0",
+#     }
+#     save = Path(
+#         r"C:\Users\bvw20\Pictures\Graphic_Design\Projects\Music\Bootleg_Covers\bruce\_images\1981\1981-07-02",
+#     )
+#     save.mkdir(exist_ok=True)
+#     base = "https://www.app.com"
+#     with httpx.Client() as client:
+#         url = r"https://www.app.com/picture-gallery/entertainment/2025/08/13/bruce-springsteen-and-the-e-street-band-perform-at-the-brendan-byrne-arena-1981/85242117007/"
+#         r = client.get(
+#             url=url,
+#         )
+#         soup = bs4(r.content, "lxml")
+#         with Path(save, "info.txt").open("w") as f:
+#             f.write(f"photos from here: {url}")
+#         for i in soup.find_all("img"):
+#             img = re.sub(r"\?.*", "", i["src"])
+#             filename = re.sub(r"\d{11}-", "", img.split("/")[-1])
+#             photog = slugify.slugify(
+#                 re.sub(r"\/.*", "", i.parent.next_sibling.next_sibling),
+#             )
+#             # print(photog, filename)
+#             img_data = client.get(f"{base}{img}")
+#             if img_data:
+#                 if not Path(save, f"{photog}_{filename}").exists():
+#                     print(filename)
+#                     with Path(save, f"{photog}_{filename}").open("wb") as file:
+#                         file.write(img_data.content)
+#                 else:
+#                     print(f"{filename} exists, skipping")
+#             time.sleep(0.5)
+from user_agent import generate_user_agent
+
+
+def main():
+    headers = {
+        "User-Agent": generate_user_agent(),
+        "Cookie": "wikidot_token7=0",
+    }
+
+    results = []
+
+    base_url = "http://brucebase.wikidot.com"
+    with httpx.Client(headers=headers) as client:
+        # url = f"{base_url}/eye:2021-11-12b-basie-center-cinemas-red-bank-nj"
+
+        # res = client.get(url)
+
+        # soup = bs4(res.content, "lxml")
+        # table = soup.find(id="page-content").find("table")
+
+        # for row in table.find_all("tr"):
+        #     source = md(str(row.find_all("td")[0]))
+        #     report = md(str(row.find_all("td")[1]))
+
+        res = client.get(
+            "http://brucebase.wikidot.com/system:page-tags/tag/eyewitness#pages",
+        )
+
+        soup = bs4(res.content, "lxml")
+
+        links = soup.find_all("a", href=re.compile("/eye:.*"))
+        print(len(links))
+
+        for link in links:
+            print(link.get("href"))
+            res = client.get(f"{base_url}{link.get('href')}")
+            soup = bs4(res.content, "lxml")
+
+            table = soup.find(id="page-content").find("table")
+
+            event = {
+                "url": link.get("href"),
+                "table": str(table),
+            }
+
+            results.append(event)
+
+            time.sleep(0.5)
+
+        with Path("./eye.json").open("w", encoding="utf-8") as f:
+            json.dump(results, f)
 
 
 main()
