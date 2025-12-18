@@ -9,9 +9,8 @@ import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
 from psycopg.rows import dict_row
-
-from .tools.parsing import html_parser
-from .tools.scraping import scraper
+from tools.parsing import html_parser
+from tools.scraping import scraper
 
 # only gets URLs matching one of the event page types,
 # and that the year is only from 1965 ->

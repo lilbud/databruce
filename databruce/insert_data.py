@@ -12,25 +12,24 @@ import time
 import httpx
 import psycopg
 import psycopg.connection
+from archive import get_list_from_archive
+from covers import get_covers
+from database import db
+from event_page import scrape_event_page
+from events import certainty, event_num_fix, get_events, sessions
+from locations import update_locations
 from psycopg.rows import dict_row
-
-from .archive import get_list_from_archive
-from .covers import get_covers
-from .database import db
-from .event_page import scrape_event_page
-from .events import certainty, event_num_fix, get_events, sessions
-from .locations import update_locations
-from .relations import bands, relations
-from .setlist.setlist_stats import (
+from relations import bands, relations
+from setlist.setlist_stats import (
     band_premiere,
     calc_song_gap,
     debut_premiere,
     opener_closer,
 )
-from .songs import get_songs, update_song_info
-from .tools.scraping import scraper
-from .tours import update_tour_legs, update_tour_runs, update_tours
-from .venues import update_venue_count
+from songs import get_songs, update_song_info
+from tools.scraping import scraper
+from tours import update_tour_legs, update_tour_runs, update_tours
+from venues import update_venue_count
 
 current_datetime = datetime.datetime.now(tz=datetime.UTC)
 

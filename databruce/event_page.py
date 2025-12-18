@@ -11,13 +11,12 @@ import re
 import httpx
 import psycopg
 from bs4 import BeautifulSoup as bs4
-
-from .events import get_event_id
-from .tabview import on_stage, setlist
-from .tags.tags import get_tags
-from .tools.parsing import html_parser
-from .tools.scraping import scraper
-from .venues import venue_parser
+from events import get_event_id
+from tabview import on_stage, setlist
+from tags.tags import get_tags
+from tools.parsing import html_parser
+from tools.scraping import scraper
+from venues import venue_parser
 
 MAIN_URL = "http://brucebase.wikidot.com"
 

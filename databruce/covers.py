@@ -3,8 +3,7 @@ import re
 import httpx
 import psycopg
 from psycopg.rows import dict_row
-
-from .tools.scraping import scraper
+from tools.scraping import scraper
 
 
 def get_covers(cur: psycopg.Cursor, client: httpx.Client) -> None:

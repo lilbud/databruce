@@ -12,9 +12,8 @@ import psycopg
 from bs4 import BeautifulSoup as bs4
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
-
-from .tools.parsing import html_parser
-from .tools.scraping import scraper
+from tools.parsing import html_parser
+from tools.scraping import scraper
 
 
 def update_song_info(cur: psycopg.Cursor) -> None:
