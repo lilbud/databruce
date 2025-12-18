@@ -8,3 +8,5 @@ psycopg[binary,pool]
 lxml
 user-agent
 python-slugify
+numpy
+pandas

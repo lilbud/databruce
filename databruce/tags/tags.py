@@ -20,21 +20,21 @@ with Path.open(json_path) as tags_json:
     tours = tags_dict["tours"]
 
 
-async def get_tour(tour_tag: str, cur: psycopg.AsyncCursor) -> str:
+def get_tour(tour_tag: str, cur: psycopg.Cursor) -> str:
     """Get the proper tour id for a given tag."""
-    res = await cur.execute(
+    res = cur.execute(
         """SELECT id FROM tours WHERE brucebase_tag=%s;""",
         (tour_tag,),
     )
 
-    tour = await res.fetchone()
+    tour = res.fetchone()
     return tour["id"]
 
 
-async def get_tags(
+def get_tags(
     soup: bs4,
     event_id: str,
-    cur: psycopg.AsyncCursor,
+    cur: psycopg.Cursor,
 ) -> None:
     """Search through the event_page tags and find those that match provided list.
 
@@ -58,13 +58,13 @@ async def get_tags(
                     case "retail" | "livedl":
                         tags["official"] = True
             elif tours.get(f"{i.text}"):
-                tags["tour"] = await get_tour(i.text, cur)
+                tags["tour"] = get_tour(i.text, cur)
 
             if i.text not in tags["other_tags"]:
                 tags["other_tags"].append(i.text)
 
         try:
-            await cur.execute(
+            cur.execute(
                 """UPDATE "events" SET tour_id = %s, bootleg = %s,
                 official = %s WHERE event_id = %s""",
                 (
@@ -75,7 +75,7 @@ async def get_tags(
                 ),
             )
 
-            await cur.execute(
+            cur.execute(
                 """INSERT INTO "tags" (event_id, tags) VALUES (%(event)s, %(tags)s)
                 ON CONFLICT(event_id) DO UPDATE SET tags=%(tags)s""",
                 {

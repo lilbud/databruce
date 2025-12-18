@@ -9,30 +9,31 @@ import httpx
 from user_agent import generate_user_agent
 
 
-async def get_client() -> httpx.AsyncClient:
+def get_client() -> httpx.Client:
     """Create a client for requests and return."""
     headers = {
         "User-Agent": generate_user_agent(),
         "Cookie": "wikidot_token7=0",
     }
 
-    return httpx.AsyncClient(headers=headers, timeout=30)
+    return httpx.Client(headers=headers, timeout=30)
 
 
-async def get(url: str, client: httpx.AsyncClient) -> httpx.Response:
+def get(url: str, client: httpx.Client) -> httpx.Response | None:
     """Make a GET request to the given URL."""
     try:
-        response = await client.get(url)
+        response = client.get(url)
     except httpx.RequestError as exc:
         print(f"An error occurred while requesting {exc.request.url!r}.")
+        return None
     else:
         return response
 
 
-async def post(category_id: str, client: httpx.AsyncClient) -> dict:
+def post(category_id: str, client: httpx.Client) -> dict | None:
     """Make a POST request to Brucebase's category list for the given category."""
     try:
-        response = await client.post(
+        response = client.post(
             "http://brucebase.wikidot.com/ajax-module-connector.php",
             data={
                 "category_id": category_id,
@@ -43,7 +44,9 @@ async def post(category_id: str, client: httpx.AsyncClient) -> dict:
 
     except httpx.RequestError as exc:
         print(f"An error occurred while requesting {exc.request.url!r}.")
+        return None
     except KeyError as e:
         print(f"Key Not Found in Response Dictionary: {e}")
+        return None
     else:
         return response.json()["body"]

@@ -4,49 +4,49 @@ import psycopg
 from bs4 import Tag
 
 
-async def get_band_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int:
+def get_band_id(url: str, name: str, cur: psycopg.Cursor) -> int:
     """Get band id for a given band url."""
     try:
-        res = await cur.execute(
+        res = cur.execute(
             """SELECT id FROM bands WHERE brucebase_url = %s""",
             (url,),
         )
 
-        band = await res.fetchone()
+        band = res.fetchone()
         return band["id"]
     except TypeError:  # band doesn't exist, insert into BANDS and return id
-        res = await cur.execute(
+        res = cur.execute(
             """INSERT INTO bands (brucebase_url, name)
             VALUES (%s, %s) RETURNING *""",
             (url, name),
         )
 
-        band = await res.fetchone()
+        band = res.fetchone()
         return band["id"]
 
 
-async def get_relation_id(url: str, name: str, cur: psycopg.AsyncCursor) -> int:
+def get_relation_id(url: str, name: str, cur: psycopg.Cursor) -> int:
     """Get id for a given relation url."""
     try:
-        res = await cur.execute(
+        res = cur.execute(
             """SELECT id FROM relations WHERE brucebase_url = %s""",
             (url,),
         )
 
-        relation = await res.fetchone()
+        relation = res.fetchone()
         return relation["id"]
     except TypeError:  # relation doesn't exist, insert into RELATIONS and return id
-        res = await cur.execute(
+        res = cur.execute(
             """INSERT INTO relations (brucebase_url, name)
             VALUES (%s, %s) RETURNING *""",
             (url, name),
         )
 
-        relation = await res.fetchone()
+        relation = res.fetchone()
         return relation["id"]
 
 
-async def get_note(item: Tag) -> str:
+def get_note(item: Tag) -> str | None:
     """Get note attached to an onstage li item."""
     try:
         return item.span.text.lower().strip("()")
@@ -54,7 +54,7 @@ async def get_note(item: Tag) -> str:
         return None
 
 
-async def get_relation_note(relation: Tag) -> str | None:
+def get_relation_note(relation: Tag) -> str | None:
     """Return the note inside a list element."""
     try:
         return relation.span.text.lower().strip("()")
@@ -62,10 +62,10 @@ async def get_relation_note(relation: Tag) -> str | None:
         return None
 
 
-async def get_onstage(
+def get_onstage(
     tab_contents: Tag,
     event_id: str,
-    cur: psycopg.AsyncCursor,
+    cur: psycopg.Cursor,
 ) -> None:
     """Get a list of those on stage at a given event."""
     onstage = []
@@ -74,29 +74,29 @@ async def get_onstage(
         for link in subgroup.find_all("li"):
             try:
                 for member in link.ul.find_all("li"):
-                    relation = await get_relation_id(
+                    relation = get_relation_id(
                         member.a["href"],
                         member.a.get_text(),
                         cur,
                     )
-                    band = await get_band_id(
+                    band = get_band_id(
                         subgroup.a["href"],
                         subgroup.a.get_text(),
                         cur,
                     )
-                    note = await get_note(member)
+                    note = get_note(member)
 
             except AttributeError:
-                relation = await get_relation_id(link.a["href"], link.a.get_text(), cur)
+                relation = get_relation_id(link.a["href"], link.a.get_text(), cur)
                 band = None
-                note = await get_note(link)
+                note = get_note(link)
 
             if relation not in [k[0] for k in onstage]:
                 onstage.append([relation, band, note])
 
     for item in onstage:
         try:
-            await cur.execute(
+            cur.execute(
                 """INSERT INTO "onstage"
                     (event_id, relation_id, band_id, note)
                     VALUES (%(event)s, %(relation)s, %(band)s, %(note)s)

@@ -9,7 +9,7 @@ from titlecase import titlecase
 EVENT_TYPES = "/(gig|nogig|interview|rehearsal|nobruce|recording):"
 
 
-async def get_set_name_from_url(event_url: str) -> str:
+def get_set_name_from_url(event_url: str) -> str:
     """Return the url 'category', which is the default set name."""
     try:
         return titlecase(re.search(EVENT_TYPES, event_url).group(1))
@@ -17,7 +17,7 @@ async def get_set_name_from_url(event_url: str) -> str:
         return "Show"
 
 
-async def song_id_corrector(
+def song_id_corrector(
     song_url: str,
 ) -> str:
     """Corrects ids that don't match up to SONGS table."""
@@ -30,7 +30,7 @@ async def song_id_corrector(
             return song_url
 
 
-async def clean_song_note(song_note: Tag) -> str:
+def clean_song_note(song_note: Tag) -> str | None:
     """Clean the song note with regex. Removes parenthesis and whitespace."""
     try:
         return re.sub(r"^[\s\(\)]|[\s\(\)]$", "", song_note.span.get_text())
@@ -38,7 +38,7 @@ async def clean_song_note(song_note: Tag) -> str:
         return None
 
 
-async def get_song_note(song: dict, segue: bool) -> str:  # noqa: FBT001
+def get_song_note(song: Tag, segue: bool) -> str | None:  # noqa: FBT001
     """Return the note attached to a list element.
 
     It will only return a note for a single li item.
@@ -47,14 +47,14 @@ async def get_song_note(song: dict, segue: bool) -> str:  # noqa: FBT001
         return None
 
     try:
-        notes = [song["note"], titlecase(await clean_song_note(song["link"]))]
+        notes = [song["note"], titlecase(clean_song_note(song["link"]))]
 
         return ", ".join(filter(None, notes))
     except TypeError:
         return None
 
 
-async def is_song_segue(i: int, list_size: int) -> bool:
+def is_song_segue(i: int, list_size: int) -> bool:
     """Compare item position in element to total number of items in element.
 
     A segue is an unbroken chain from one song to the next (Ex. Incident > Rosie).
@@ -65,12 +65,12 @@ async def is_song_segue(i: int, list_size: int) -> bool:
     return i <= (list_size - 2)
 
 
-async def check_set_order(header_list: list[Tag]) -> list:
+def check_set_order(header_list: list[Tag]) -> list:
     """Get the proper order of sets by returning a list of the set_header p elements."""
     return [p.get_text() for p in header_list]
 
 
-async def rearrange_sets(setlist: dict, proper_set_order: list) -> dict:
+def rearrange_sets(setlist: dict, proper_set_order: list) -> dict:
     """Occasionally the setlists will be in the wrong order.
 
     usually putting soundcheck at the end, even when it is inserted first.
@@ -80,7 +80,7 @@ async def rearrange_sets(setlist: dict, proper_set_order: list) -> dict:
     return {set_name: setlist[f"{set_name}"] for set_name in proper_set_order}
 
 
-async def parse_setlists(
+def parse_setlists(
     tab_content: Tag,
     default_set_name: str,
 ) -> dict[str, list]:
@@ -93,7 +93,7 @@ async def parse_setlists(
     proper_set_order = [f"{default_set_name}"]
 
     if len(tab_content.find_all("p")) > 1:
-        proper_set_order = await check_set_order(tab_content.find_all("p"))
+        proper_set_order = check_set_order(tab_content.find_all("p"))
     else:
         sets = {f"{default_set_name}": []}
         current_set_name = default_set_name
@@ -139,59 +139,59 @@ async def parse_setlists(
     # not sure why, but this function will ensure they match the proper order
     # as in the setlist tab
 
-    return await rearrange_sets(sets, proper_set_order)
+    return rearrange_sets(sets, proper_set_order)
 
 
-async def get_song_id(url: str, cur: psycopg.AsyncCursor) -> int:
+def get_song_id(url: str, cur: psycopg.Cursor) -> int | None:
     """Get id for a given song_url."""
     try:
-        res = await cur.execute(
+        res = cur.execute(
             """SELECT id FROM songs WHERE brucebase_url = %s""",
             (url,),
         )
 
-        song = await res.fetchone()
-        return song["id"]
+        song = res.fetchone()
+        return int(song["id"])
     except TypeError:
         return None
 
 
-async def get_song_info(
+def get_song_info(
     seq_song: Tag | str,
     song: Tag,
     sequence: ResultSet,
-    cur: psycopg.AsyncCursor,
-) -> list:
+    cur: psycopg.Cursor,
+) -> tuple[int | None, str | None, bool]:
     """Get info about the provided song.
 
     Given an li setlist item, get the url, id, and segue status.
     """
     if isinstance(seq_song, Tag):
-        song_url = await song_id_corrector(seq_song["href"])
-        song_id = await get_song_id(song_url, cur)
+        song_url = song_id_corrector(seq_song["href"])
+        song_id = get_song_id(song_url, cur)
 
-    segue = await is_song_segue(sequence.index(seq_song), len(sequence))
-    song_note = await get_song_note(song, segue)
+    segue = is_song_segue(sequence.index(seq_song), len(sequence))
+    song_note = get_song_note(song, segue)
 
     return song_id, song_note, segue
 
 
-async def get_setlist(
+def get_setlist(
     tab_content: Tag,
     event_id: str,
     event_url: str,
-    cur: psycopg.AsyncCursor,
+    cur: psycopg.Cursor,
 ) -> None:
     """Get a list of songs played at a given event and insert into database."""
     setlist = []
 
     # the default set name is the page category in the URL
-    default_set_name = await get_set_name_from_url(event_url)
+    default_set_name = get_set_name_from_url(event_url)
 
     # finds only the necessary elements in the setlist tab
     # p > strong - set name (note: not always there)
     # ul/ol > li - song_list, can either be ul or ol
-    sets = await parse_setlists(tab_content, default_set_name)
+    sets = parse_setlists(tab_content, default_set_name)
 
     for set_name, set_items in sets.items():
         for index, item in enumerate(set_items, 1):
@@ -201,7 +201,7 @@ async def get_setlist(
                 sequence = item["link"].find_all("a", href=re.compile("/song:"))
 
             for seq_song in sequence:
-                song_id, song_note, segue = await get_song_info(
+                song_id, song_note, segue = get_song_info(
                     seq_song,
                     item,
                     sequence,
@@ -214,7 +214,7 @@ async def get_setlist(
                     setlist.append(current)
 
     if len(setlist) == 0:
-        await cur.execute(
+        cur.execute(
             """UPDATE "events" SET setlist_certainty='Unknown'
                 WHERE event_id=%s""",
             (event_id,),
@@ -222,13 +222,13 @@ async def get_setlist(
 
         print(f"No setlist available for {event_url}")
     else:
-        await cur.execute(
+        cur.execute(
             """UPDATE "events" SET setlist_certainty='Confirmed'
                 WHERE event_id=%s""",
             (event_id,),
         )
 
-        await cur.executemany(
+        cur.executemany(
             """INSERT INTO "setlists"
                     (event_id, set_name, song_num, song_id, song_note, segue)
                     VALUES (%s, %s, %s, %s, %s, %s)

@@ -1,0 +1,32 @@
+[project]
+name = "databruce"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "ftfy>=6.3.1",
+    "httpx>=0.28.1",
+    "lxml>=6.0.2",
+    "numpy>=2.3.5",
+    "pandas>=2.3.3",
+    "psycopg[binary,pool]>=3.3.2",
+    "python-dotenv>=1.2.1",
+    "python-slugify>=8.0.4",
+    "titlecase>=2.4.1",
+    "user-agent>=0.1.14",
+]
+
+[dependency-groups]
+dev = [
+    "ty>=0.0.2",
+]
+
+[tool.ty.rules]
+non-subscriptable = "ignore"
+possibly-missing-attribute = "ignore"
+invalid-argument-type="ignore"
+unresolved-attribute="ignore"
+no-matching-overload="ignore"
+unsupported-operator="ignore"

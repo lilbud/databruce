@@ -190,6 +190,7 @@ import io
 import html_to_markdown
 import slugify
 from html2text import html2text
+from justhtml import JustHTML
 from markdownify import markdownify as md
 
 # def main():
@@ -228,55 +229,51 @@ from markdownify import markdownify as md
 #             time.sleep(0.5)
 from user_agent import generate_user_agent
 
+# def main():
+#     data = json.load(Path("./eye.json").open())
 
-def main():
-    headers = {
-        "User-Agent": generate_user_agent(),
-        "Cookie": "wikidot_token7=0",
-    }
+#     for item in data:
+#         url = item["url"]
 
-    results = []
+#         table = bs4(item["table"], "lxml").find("table", attrs={"style": True})
 
-    base_url = "http://brucebase.wikidot.com"
-    with httpx.Client(headers=headers) as client:
-        # url = f"{base_url}/eye:2021-11-12b-basie-center-cinemas-red-bank-nj"
+#         for row in table.find_all("tr", attrs={"style": True}):
+#             cells = row.find_all("td", attrs={"style": True})
 
-        # res = client.get(url)
+#             author = cells[0]
+#             content = cells[1]
 
-        # soup = bs4(res.content, "lxml")
-        # table = soup.find(id="page-content").find("table")
+#             if author.find("a"):
+#                 author = html_to_markdown.convert(
+#                     "".join([str(i) for i in author.contents]),
+#                 )
+#             else:
+#                 author = author.get_text()
 
-        # for row in table.find_all("tr"):
-        #     source = md(str(row.find_all("td")[0]))
-        #     report = md(str(row.find_all("td")[1]))
+#             converted = html_to_markdown.convert(
+#                 "".join([str(i) for i in content.contents]),
+#             )
 
-        res = client.get(
-            "http://brucebase.wikidot.com/system:page-tags/tag/eyewitness#pages",
-        )
-
-        soup = bs4(res.content, "lxml")
-
-        links = soup.find_all("a", href=re.compile("/eye:.*"))
-        print(len(links))
-
-        for link in links:
-            print(link.get("href"))
-            res = client.get(f"{base_url}{link.get('href')}")
-            soup = bs4(res.content, "lxml")
-
-            table = soup.find(id="page-content").find("table")
-
-            event = {
-                "url": link.get("href"),
-                "table": str(table),
-            }
-
-            results.append(event)
-
-            time.sleep(0.5)
-
-        with Path("./eye.json").open("w", encoding="utf-8") as f:
-            json.dump(results, f)
+#             print(f"{author}: ", converted.strip())
+#             print("-" * 20)
 
 
-main()
+# main()
+
+file = Path(
+    r"D:\Phone\Zenfone\Books\Like_a_Rivers_Flow\Like_a_Rivers_Flow_split_015.xhtml",
+).read_text(encoding="utf-8")
+
+soup = bs4(file, "lxml")
+
+text = soup.find("div", {"class": "userstuff2"}).get_text().split()
+
+print(text[int(len(text) * 0.14285715) : int(len(text) * 0.14285715) + 5])
+
+# 0.09090909
+# refers to line starting with "...castle bakers"
+# this is the 7th p element of class type "calibre7"
+
+# 0.26666668
+# print()
+# print(text[int(len(text) * 0.09090909):])

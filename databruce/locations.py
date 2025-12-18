@@ -6,13 +6,13 @@ This module provides:
 
 import psycopg
 from psycopg.rows import dict_row
-from psycopg_pool import AsyncConnectionPool
+from psycopg_pool import ConnectionPool
 
 
-async def update_cities(cur: psycopg.AsyncCursor) -> None:
+def update_cities(cur: psycopg.Cursor) -> None:
     """Update CITIES table with all cities listed in VENUES table."""
     try:
-        await cur.execute(
+        cur.execute(
             """
             UPDATE "cities" SET first_played=NULL, last_played=NULL;
 
@@ -42,10 +42,10 @@ async def update_cities(cur: psycopg.AsyncCursor) -> None:
         print("Updated CITIES with info from VENUES")
 
 
-async def update_states(cur: psycopg.AsyncCursor) -> None:
+def update_states(cur: psycopg.Cursor) -> None:
     """Update STATES table with all states listed in VENUES table."""
     try:
-        await cur.execute(
+        cur.execute(
             """
             UPDATE "states" SET first_played=NULL, last_played=NULL;
 
@@ -75,10 +75,10 @@ async def update_states(cur: psycopg.AsyncCursor) -> None:
         print("Updated STATES with info from VENUES")
 
 
-async def update_countries(cur: psycopg.AsyncCursor) -> None:
+def update_countries(cur: psycopg.Cursor) -> None:
     """Update COUNTRIES table with all countries listed in VENUES table."""
     try:
-        await cur.execute(
+        cur.execute(
             """
             UPDATE "countries" SET first_played=NULL, last_played=NULL;
 
@@ -108,10 +108,10 @@ async def update_countries(cur: psycopg.AsyncCursor) -> None:
         print("Updated COUNTRIES with info from VENUES")
 
 
-async def update_continents(cur: psycopg.AsyncCursor) -> None:
+def update_continents(cur: psycopg.Cursor) -> None:
     """Update CONTINENTS table with all continents listed in VENUES table."""
     try:
-        await cur.execute(
+        cur.execute(
             """
             UPDATE "continents"
             SET
@@ -134,13 +134,12 @@ async def update_continents(cur: psycopg.AsyncCursor) -> None:
         print("Updated CONTINENTS with info from VENUES")
 
 
-async def update_locations(pool: AsyncConnectionPool) -> None:
+def update_locations(cur: psycopg.Cursor) -> None:
     """Update the various location tables, as well as their counts."""
     # get locations from VENUES
-    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-        await update_cities(cur)
-        await update_states(cur)
-        await update_countries(cur)
-        await update_continents(cur)
+    update_cities(cur)
+    update_states(cur)
+    update_countries(cur)
+    update_continents(cur)
 
     print("Updated Locations")
