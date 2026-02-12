@@ -30,7 +30,7 @@ def get(url: str, client: httpx.Client) -> httpx.Response | None:
         return response
 
 
-def post(category_id: str, client: httpx.Client) -> dict | None:
+def post(category_id: str, client: httpx.Client) -> str | None:
     """Make a POST request to Brucebase's category list for the given category."""
     try:
         response = client.post(
