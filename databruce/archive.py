@@ -19,7 +19,8 @@ def get_list_from_archive(
     if response:
         try:
             for item in response.json()["response"]["docs"]:
-                event_id = item["databruce_id"]
+                event_id = cur.execute("""select id from events where event_id = %s""", (item["databruce_id"] ,)).fetchone()["id"]
+
                 created_at = datetime.datetime.strptime(  # noqa: DTZ007
                     item["publicdate"],
                     "%Y-%m-%dT%H:%M:%SZ",
