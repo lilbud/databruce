@@ -14,25 +14,25 @@ def update_cities(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "cities" SET first_played=NULL, last_played=NULL;
+            WITH city_stats AS (
+                SELECT 
+                    c.id,
+                    COUNT(distinct e.id) AS event_count,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id ASC) FILTER (WHERE e.id IS NOT NULL))[1] AS first,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id DESC) FILTER (WHERE e.id IS NOT NULL))[1] AS last
+                FROM cities c
+                left join venues v on v.city = c.id
+                left join events e on e.venue_id = v.id
+                GROUP BY 1
+            )
 
-            UPDATE "cities"
-            SET
-                num_events = t.num,
-                first_played = t.first,
-                last_played = t.last
-            FROM (
-                SELECT
-                    v.city,
-                    SUM(v.num_events) AS num,
-                    MIN(v.first_played) AS first,
-                    MAX(v.last_played) AS last
-                FROM venues v
-                LEFT JOIN events e ON e.event_id = v.last_played
-                GROUP BY v.city
-                ORDER BY v.city
-            ) t
-            WHERE "cities".id = t.city
+            UPDATE cities c
+            set
+                num_events = cs.event_count,
+                first_event = cs.first,
+                last_event = cs.last
+            from city_stats cs
+            where c.id = cs.id
             """,
         )
 
@@ -47,25 +47,27 @@ def update_states(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "states" SET first_played=NULL, last_played=NULL;
-
-            UPDATE "states"
-            SET
-                num_events = t.num,
-                first_played = t.first,
-                last_played = t.last
-            FROM (
+            WITH state_stats AS (
                 SELECT
-                    v.state,
-                    SUM(v.num_events) AS num,
-                    MIN(v.first_played) AS first,
-                    MAX(v.last_played) AS last
-                FROM venues v
-                LEFT JOIN events e ON e.event_id = v.last_played
-                GROUP BY v.state
-                ORDER BY v.state
-            ) t
-            WHERE "states".id = t.state
+                    s.id,
+                    COUNT(distinct e.id) AS event_count,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id ASC) FILTER (WHERE e.id IS NOT NULL))[1] AS first,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id DESC) FILTER (WHERE e.id IS NOT NULL))[1] AS last
+                FROM states s
+                left join cities c on c.state = s.id
+                left join venues v on v.city = c.id
+                left join events e on e.venue_id = v.id
+                left join setlists s1 on s1.event_id = e.id
+                GROUP BY 1
+            )
+
+            UPDATE states s
+            set
+                num_events = ss.event_count,
+                first_event = ss.first,
+                last_event = ss.last
+            from state_stats ss
+            where s.id = ss.id
             """,
         )
 
@@ -80,25 +82,25 @@ def update_countries(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "countries" SET first_played=NULL, last_played=NULL;
-
-            UPDATE "countries"
-            SET
-                num_events = t.num,
-                first_played = t.first,
-                last_played = t.last
-            FROM (
-                SELECT
-                    v.country,
-                    SUM(v.num_events) AS num,
-                    MIN(v.first_played) AS first,
-                    MAX(v.last_played) AS last
-                FROM venues v
-                LEFT JOIN events e ON e.event_id = v.last_played
-                GROUP BY v.country
-                ORDER BY v.country
-            ) t
-            WHERE "countries".id = t.country
+            WITH country_stats AS (
+            SELECT 
+                c.id,
+                COUNT(distinct e.id) AS event_count,
+                (ARRAY_AGG(e.id ORDER BY e.event_id ASC) FILTER (WHERE e.id IS NOT NULL))[1] AS first,
+                (ARRAY_AGG(e.id ORDER BY e.event_id DESC) FILTER (WHERE e.id IS NOT NULL))[1] AS last
+            FROM countries c
+            left join cities c1 on c1.country = c.id
+            left join venues v on v.city = c1.id
+            left join events e on e.venue_id = v.id
+            GROUP BY 1
+            )
+            UPDATE countries c
+            set
+                num_events = cs.event_count,
+                first_event = cs.first,
+                last_event = cs.last
+            from country_stats cs
+            where c.id = cs.id
             """,
         )
 
@@ -113,18 +115,26 @@ def update_continents(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "continents"
-            SET
-                num_events = t.num
-            FROM (
+            update continents set num_events = 0;
+
+            with continent_stats as (
                 SELECT
-                    continent,
-                    SUM(num_events) AS num
-                FROM venues
-                WHERE continent IS NOT NULL
-                GROUP BY continent
-            ) t
-            WHERE "continents".id = t.continent
+                    c.id,
+                    count(distinct e.event_id) as event_count
+                FROM continents c
+                left join countries c1 on c1.continent = c.id
+                left join states s on s.country = c1.id
+                left join cities c2 on c2.state = s.id
+                left join venues v on v.city = c2.id
+                left join events e on e.venue_id = v.id
+                group by 1
+            )
+
+            UPDATE continents c
+            SET
+                num_events = cs.event_count
+            FROM continent_stats cs
+            WHERE c.id = cs.id
             """,
         )
 
