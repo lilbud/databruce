@@ -141,19 +141,20 @@ def event_num_fix(cur: psycopg.Cursor) -> None:
     """Update event_num after new events inserted."""
     cur.execute(
         """
-        UPDATE "events" SET event_num = NULL;
+        UPDATE events SET event_num = NULL;
 
-        UPDATE "events"
-        SET
-            event_num=t.num
-        FROM (
+        with nums as (
             SELECT
-                row_number() OVER (ORDER BY event_id) AS num,
-                event_id
-            FROM "events"
-        WHERE brucebase_url NOT LIKE '/nogig:%'
-        ) t
-        WHERE "events".event_id=t.event_id;
+                id,
+                num
+            FROM "event_nums"
+        )
+
+        UPDATE events e
+        SET
+            event_num=n.num
+        FROM nums n
+        WHERE e.id=n.id;
         """,
     )
 
