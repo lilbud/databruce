@@ -2,9 +2,8 @@ import re
 
 import httpx
 import psycopg
-from psycopg.rows import dict_row
 from tools.scraping import scraper
-
+from database import db
 
 def get_covers(cur: psycopg.Cursor, client: httpx.Client) -> None:
     """Grab a list of covers from my site and insert into database."""
@@ -18,26 +17,32 @@ def get_covers(cur: psycopg.Cursor, client: httpx.Client) -> None:
         response = r.json()
     except httpx.RequestError as exc:
         print(f"An error occurred while requesting {exc.request.url!r}.")
-
-    for img in response["tree"]:
-        if "Bruce_Springsteen" in img["path"] and re.search(
-            "(.jpg|.png)$",
-            img["path"],
-        ):
-            date = re.search(r"\d{4}-\d{2}-\d{2}", img["path"])[0]
+    
+    for img in response['tree']:
+        if re.search(r"bruce.*\d{4}-\d{2}-\d{2}.*\.(jpg|png)$", img['path']):
+            date = re.search("\d{4}-\d{2}-\d{2}", img['path'])[0]
             url = f"{base_url}/{img['path']}"
+
+            event = cur.execute(
+                """SELECT id FROM events WHERE event_date = %(date)s""",
+                {"date": date},
+            ).fetchone()['id']
 
             try:
                 cur.execute(
-                    """INSERT INTO "covers" (event_date, cover_url)
-                        VALUES (%(date)s, %(url)s)
+                    """INSERT INTO "covers" (event_id, cover_url)
+                        VALUES (%(event)s, %(url)s)
                         ON CONFLICT(cover_url) DO NOTHING""",
-                    {"date": date, "url": url},
+                    {"event": event, "url": url},
                 )
             except (
                 psycopg.OperationalError,
                 psycopg.IntegrityError,
             ) as e:
-                print("COVERS: Could not complete operation:", e)
+                print("COVERS: Could not complete operation:", e.with_traceback())
 
     print("Got Covers")
+
+if __name__ == "__main__":
+    with db.load_db() as conn, conn.cursor() as cur, httpx.Client() as client:
+        get_covers(cur, client)
