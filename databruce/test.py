@@ -1,7 +1,9 @@
 """File for testing random code/functions/ideas."""
 
 import asyncio
+import calendar
 import datetime
+import io
 import json
 import random
 import re
@@ -9,14 +11,22 @@ import time
 from pathlib import Path
 
 import ftfy
+
+# import html_to_markdown
 import httpx
-import nameparser
+
+# import nameparser
 import pandas as pd
 import psycopg
+import slugify
 from bs4 import BeautifulSoup as bs4
 from bs4 import Tag
 from database import db
 from dotenv import load_dotenv
+
+# from html2text import html2text
+# from justhtml import JustHTML
+# from markdownify import markdownify as md
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from tools.scraping import scraper
@@ -185,14 +195,6 @@ def filehost(link: str) -> str:
     return None
 
 
-import io
-
-import html_to_markdown
-import slugify
-from html2text import html2text
-from justhtml import JustHTML
-from markdownify import markdownify as md
-
 # def main():
 #     headers = {
 #         "User-Agent": generate_user_agent(),
@@ -227,53 +229,65 @@ from markdownify import markdownify as md
 #                 else:
 #                     print(f"{filename} exists, skipping")
 #             time.sleep(0.5)
-from user_agent import generate_user_agent
 
-# def main():
-#     data = json.load(Path("./eye.json").open())
+with db.load_db() as conn, conn.cursor() as cur:
+    file = Path(r"C:\Users\bvw20\Desktop\onstage.csv").read_text()
 
-#     for item in data:
-#         url = item["url"]
+    for line in file.split("\n")[1:]:
+        id = event_id = relation_id = band_id = updated = created = uuid = None
 
-#         table = bs4(item["table"], "lxml").find("table", attrs={"style": True})
+        try:
+            id, event_id, relation_id, band_id, updated, created, uuid = line.split(",")
+            # print(event_id, relation_id, band_id)
+            print("---")
 
-#         for row in table.find_all("tr", attrs={"style": True}):
-#             cells = row.find_all("td", attrs={"style": True})
+            try:
+                event = cur.execute(
+                    """SELECT id FROM events WHERE event_id = %s""",
+                    (event_id,),
+                ).fetchone()["id"]
 
-#             author = cells[0]
-#             content = cells[1]
+                if band_id == "":
+                    band_id = None
 
-#             if author.find("a"):
-#                 author = html_to_markdown.convert(
-#                     "".join([str(i) for i in author.contents]),
-#                 )
-#             else:
-#                 author = author.get_text()
+                if created in ("", "t", "f"):
+                    created = updated
 
-#             converted = html_to_markdown.convert(
-#                 "".join([str(i) for i in content.contents]),
-#             )
-
-#             print(f"{author}: ", converted.strip())
-#             print("-" * 20)
-
-
-# main()
-
-file = Path(
-    r"D:\Phone\Zenfone\Books\Like_a_Rivers_Flow\Like_a_Rivers_Flow_split_015.xhtml",
-).read_text(encoding="utf-8")
-
-soup = bs4(file, "lxml")
-
-text = soup.find("div", {"class": "userstuff2"}).get_text().split()
-
-print(text[int(len(text) * 0.14285715) : int(len(text) * 0.14285715) + 5])
-
-# 0.09090909
-# refers to line starting with "...castle bakers"
-# this is the 7th p element of class type "calibre7"
-
-# 0.26666668
-# print()
-# print(text[int(len(text) * 0.09090909):])
+                if band_id in [
+                    451,
+                    437,
+                    30,
+                    137,
+                    38,
+                    48,
+                    50,
+                    453,
+                    444,
+                    59,
+                    63,
+                    70,
+                    459,
+                    427,
+                    461,
+                    462,
+                    83,
+                    450,
+                    117,
+                    125,
+                    126,
+                    447,
+                    419,
+                    157,
+                    163,
+                    452,
+                    204,
+                ]:
+                    print(event_id, relation_id, band_id)
+                    cur.execute(
+                        """INSERT INTO onstage (event_id, relation_id, band_id, created_at) VALUES (%s, %s, %s, %s) on conflict (event_id, relation_id, band_id) do nothing""",
+                        (event, relation_id, band_id, created),
+                    )
+            except TypeError:
+                pass
+        except ValueError:
+            pass
