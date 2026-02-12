@@ -5,31 +5,23 @@ This module provides:
 - basic_database: Populate the database with the basic amount of information.
 """
 
-import asyncio
 import datetime
 import time
 
 import httpx
 import psycopg
-import psycopg.connection
 from archive import get_list_from_archive
 from covers import get_covers
 from database import db
 from event_page import scrape_event_page
-from events import certainty, event_num_fix, get_events, sessions
+from events import event_num_fix
 from locations import update_locations
-from psycopg.rows import dict_row
 from relations import bands, relations
-from setlist.setlist_stats import (
-    band_premiere,
-    calc_song_gap,
-    debut_premiere,
-    opener_closer,
-)
-from songs import get_songs, update_song_info
+from setlist.setlist_stats import update_notes, update_setlist_stats
+from songs import update_song_info
 from tools.scraping import scraper
-from tours import update_tour_legs, update_tour_runs, update_tours
-from venues import update_venue_count
+from tours import update_tour_counts, update_tour_legs, update_tour_runs, update_tours
+from venues import update_venues
 
 current_datetime = datetime.datetime.now(tz=datetime.UTC)
 
@@ -74,31 +66,24 @@ def update_existing(cur: psycopg.Cursor, client: httpx.Client) -> None:
     update_tours(cur)
     update_tour_runs(cur)
     update_tour_legs(cur)
-    get_new_setlists(cur, client)
-    update_venue_count(cur)
+    update_venues(cur)
     relations.update_relations(cur)
     bands.update_bands(cur)
+    update_notes(cur)
 
 
 def update_stats(cur: psycopg.Cursor) -> None:
     """Update various statistics."""
-    debut_premiere(cur)
-    calc_song_gap(cur)
     update_song_info(cur)
-
-
-#    band_premiere(cur)
-#    opener_closer(cur)
-#    certainty(cur)
-#    sessions(cur)
+    update_setlist_stats(cur)
 
 
 def main(cur: psycopg.Cursor, conn: psycopg.Connection) -> None:
     """Test."""
     client = scraper.get_client()
 
-    update_get_new(cur, conn, client)
-    update_existing(cur, client)
+    # update_get_new(cur, conn, client)
+    # update_existing(cur, client)
     update_stats(cur)
 
 
