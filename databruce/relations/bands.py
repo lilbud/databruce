@@ -9,29 +9,28 @@ def update_bands(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "bands" SET appearances = 0, first_appearance=null, last_appearance=null;
+            UPDATE bands SET num_events = 0, first_event = null, last_event = null;
 
-            UPDATE "bands"
-            SET
-                appearances = t.num,
-                first_appearance=t.first,
-                last_appearance=t.last
-            FROM
-            (
+            WITH band_stats AS (
                 SELECT
-                    o.band_id AS artist,
-                    MIN(o.event_id) AS first,
-                    MAX(o.event_id) AS last,
-                    count(distinct event_id) AS num
-                FROM
-                "onstage" o
-                GROUP BY o.band_id
-            ) t
-            WHERE
-            "bands".id = t.artist;
-            """,  # noqa: E501
+                    o.band_id,
+                    COUNT(distinct o.event_id) AS count,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id ASC))[1] AS first,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id DESC))[1] AS last
+                FROM onstage o
+                JOIN events e ON o.event_id = e.id
+                GROUP BY 1
+            )
+            UPDATE bands r
+            SET
+                num_events = bs.count,
+                first_event = bs.first,
+                last_event = bs.last
+            FROM band_stats bs
+            WHERE r.id = bs.band_id;
+            """,
         )
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-        print("Could not complete operation:", e)
+        print("Bands: Could not complete operation:", e)
     else:
         print("Got Bands")

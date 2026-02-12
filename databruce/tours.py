@@ -10,26 +10,28 @@ def update_tour_legs(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE tour_legs SET first_show=null, last_show=null, num_shows=0, num_songs=0;
+            UPDATE "tour_legs" SET first_event = NULL, last_event = NULL, num_shows = 0, num_songs = 0;
 
-            UPDATE tour_legs
-            SET
-                first_show=t.first,
-                last_show=t.last,
-                num_shows=t.num_shows,
-                num_songs=t.num_songs
-            FROM (
-            SELECT
-                e.tour_leg AS id,
-                MIN(e.event_id) AS first,
-                MAX(e.event_id) AS last,
-                COUNT(distinct(e.event_id)) AS num_shows,
-                COUNT(distinct(s.song_id)) AS num_songs
-            FROM events e
-            LEFT JOIN setlists s USING(event_id)
-            GROUP BY e.tour_leg
-            ) t
-            WHERE "tour_legs"."id" = t.id
+            WITH tour_leg_stats AS (
+                SELECT 
+                    t.id,
+                    COUNT(distinct e.id) AS event_count,
+                    COUNT(DISTINCT(s.song_id)) FILTER (WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Rehearsal', 'Recording', 'Interview'])) AS song_count,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id ASC))[1] AS first,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id DESC))[1] AS last
+                FROM tour_legs t
+                left join events e on e.tour_leg = t.id
+                left join setlists s on s.event_id = e.id
+                GROUP BY 1
+            )
+            UPDATE tour_legs tl
+            set
+                num_shows = tls.event_count,
+                num_songs = tls.song_count,
+                first_event = tls.first,
+                last_event = tls.last
+                from tour_leg_stats tls
+            where tl.id = tls.id
             """,  # noqa: E501
         )
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
@@ -43,31 +45,32 @@ def update_tour_runs(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "runs" SET first_event = NULL, last_event = NULL;
+            UPDATE runs SET first_event = NULL, last_event=NULL, num_shows=0, num_songs=0;
 
-            UPDATE "runs"
-            SET
-                first_event = t.first,
-                last_event = t.last,
-                num_shows = t.event_count,
-                num_songs = t.song_count
-            FROM (
-                SELECT
-                    e.run AS id,
-                    MIN(e.event_id) AS first,
-                    MAX(e.event_id) AS last,
-                    COUNT(DISTINCT e.event_id) AS event_count,
-                    COUNT(DISTINCT s.song_id) AS song_count
-                FROM events e
-                LEFT JOIN setlists s USING(event_id)
-                WHERE e.run IS NOT NULL
-                GROUP BY e.run
-            ) t
-            WHERE "runs"."id" = t.id
+            WITH run_stats AS (
+                SELECT 
+                    r.id,
+                    COUNT(distinct e.id) AS event_count,
+                    COUNT(DISTINCT(s.song_id)) FILTER (WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Rehearsal', 'Recording', 'Interview'])) AS song_count,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id ASC))[1] AS first,
+                    (ARRAY_AGG(e.id ORDER BY e.event_id DESC))[1] AS last
+                FROM runs r
+                left join events e on e.run = r.id
+                left join setlists s on s.event_id = e.id
+                GROUP BY 1
+            )
+            UPDATE runs r
+            set
+                num_shows = rs.event_count,
+                num_songs = rs.song_count,
+                first_event = rs.first,
+                last_event = rs.last
+            from run_stats rs
+            where r.id = rs.id
             """,
         )
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
-        print("TOURS: Could not complete operation:", e)
+        print("RUNS: Could not complete operation:", e)
     else:
         print("Updated TOUR_RUNS with info from EVENTS")
 
@@ -77,31 +80,49 @@ def update_tours(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "tours" SET first_show=NULL, last_show=NULL;
+            UPDATE "tours" SET first_event=NULL, last_event=NULL, num_songs=0, num_shows=0, num_legs = 0;
 
-            UPDATE "tours"
-            SET
-                first_show=t.first,
-                last_show=t.last,
-                num_songs=t.song_count,
-                num_shows=t.event_count,
-                num_legs=t.leg_count
-            FROM (
-                SELECT
-                    e.tour_id,
-                    MIN(e.event_id) FILTER (WHERE e.event_type NOT SIMILAR TO 'Rescheduled_*') AS first,
-                    MAX(e.event_id) AS last,
-                    COUNT(DISTINCT(s.song_id)) FILTER (WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Rehearsal'])) AS song_count,
-                    COUNT(DISTINCT(e.event_id)) FILTER (WHERE e.event_type NOT SIMILAR TO 'Rescheduled_*') AS event_count,
-                    COUNT(DISTINCT(e.tour_leg)) FILTER (WHERE e.event_type NOT SIMILAR TO 'Rescheduled_*') AS leg_count
-                FROM "events" e
-                LEFT JOIN "setlists" s USING(event_id)
-                WHERE e.tour_id IS NOT NULL
-                GROUP BY e.tour_id
-            ) t
-            WHERE "tours"."id" = t.tour_id""",  # noqa: E501
+            WITH tour_stats AS (
+                SELECT 
+                t.id,
+                COUNT(DISTINCT(s.song_id)) FILTER (WHERE s.set_name <> ALL(ARRAY['Soundcheck', 'Rehearsal', 'Recording', 'Interview'])) AS song_count,
+                COUNT(DISTINCT(e.event_id)) FILTER (WHERE e.public is true) AS event_count,
+                COUNT(distinct t1.id) AS leg_count,
+                (ARRAY_AGG(e.id ORDER BY e.event_id ASC))[1] AS first,
+                (ARRAY_AGG(e.id ORDER BY e.event_id DESC))[1] AS last
+                FROM tours t
+                left JOIN events e ON e.tour_id = t.id
+                left join setlists s on s.event_id = e.id
+                left join tour_legs t1 ON t1.tour_id = t.id
+                GROUP BY 1
+            )
+
+            UPDATE tours t
+            SET 
+                num_shows = ts.event_count,
+                num_songs = ts.song_count,
+                num_legs = ts.leg_count,
+                first_event = ts.first,
+                last_event = ts.last
+            FROM tour_stats ts
+            WHERE t.id = ts.id;
+            """,  # noqa: E501
         )
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("TOURS: Could not complete operation:", e)
 
     print("Updated Tours")
+
+
+def update_tour_counts(cur: psycopg.Cursor) -> None:
+    """Get a list of tours from the EVENTS table."""
+    try:
+        cur.execute(
+            """
+            select refresh_setlist_tour_count();
+            """,
+        )
+    except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+        print("TOURS: Could not complete operation:", e)
+
+    print("Updated Tour Counts")

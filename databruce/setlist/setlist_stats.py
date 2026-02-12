@@ -3,44 +3,24 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 
+def update_setlist_stats(cur: psycopg.Cursor) -> None:
+    try:
+        res = cur.execute(
+            """call refresh_setlist_stats()""",
+        )
+
+        print(res.fetchone())
+    except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+        print("SETLIST_STATS: Could not complete operation:", e)
+
+
 def opener_closer(cur: psycopg.Cursor) -> None:
     """Get song position in setlist and insert into SETLIST table."""
     try:
         cur.execute(
             """
-            UPDATE setlists SET position = null;
-
-            UPDATE setlists
-            SET
-                position = t.position
-            FROM (
-            SELECT id, event_id, position FROM (
-            SELECT
-                s.event_id,
-                s.set_name,
-                s.id,
-                CASE
-                    WHEN set_name IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN 'Show Opener'
-                    WHEN set_name NOT IN ('Show', 'Set 1') AND song_num = MIN(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Opener'
-                    WHEN set_name NOT IN ('Show', 'Set 2', 'Encore') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) THEN set_name || ' Closer'
-                    WHEN set_name IN ('Show', 'Set 2') AND song_num = MAX(song_num) OVER (PARTITION BY event_id, set_name) AND event_id IN (SELECT distinct event_id FROM setlists WHERE set_name = 'Encore') THEN 'Main Set Closer'
-                    WHEN song_num = MAX(song_num) OVER (PARTITION BY event_id) THEN 'Show Closer'
-                    ELSE set_name
-                END AS position
-            FROM
-                setlists s
-            LEFT JOIN events e USING(event_id)
-            LEFT JOIN bands b ON b.id = e.artist
-            WHERE s.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')
-            AND e.setlist_certainty = 'Confirmed'
-            AND s.event_id IN (SELECT event_id FROM setlists GROUP BY 1 HAVING COUNT(song_id) > 2)
-            AND b.springsteen_band IS TRUE
-            ORDER BY
-                s.event_id, s.song_num
-            ) t WHERE t.position is not null
-            ) t
-            WHERE "setlists"."id" = t.id
-            """,  # noqa: E501
+            select refresh_setlist_positions();
+            """,
         )
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("Could not complete operation:", e)
@@ -51,32 +31,13 @@ def opener_closer(cur: psycopg.Cursor) -> None:
 def debut_premiere(cur: psycopg.Cursor) -> None:
     """Mark song premieres and tour debuts."""
     try:
-        cur.execute(
+        res = cur.execute(
             """
-            UPDATE "setlists" SET debut = false, premiere=false;
-
-            UPDATE
-                "setlists"
-            SET
-                debut = CASE
-                    WHEN id = ANY (t.debuts) THEN true
-                    ELSE FALSE
-                END,
-                premiere = CASE
-                    WHEN id = t.premiere THEN TRUE
-                    ELSE FALSE
-                END
-            FROM
-            (
-                SELECT
-                    debuts,
-                    premiere
-                FROM
-                premiere_debut
-            ) t
-            WHERE id = t.premiere OR id = ANY(t.debuts)
+            SELECT refresh_setlist_debut_premiere();
             """,
         )
+
+        print(res.fetchone())
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
         print("Could not complete operation:", e)
     else:
@@ -88,17 +49,7 @@ def calc_song_gap(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "setlists" SET last=NULL, next=NULL, last_time_played=NULL;
-
-            UPDATE "setlists"
-            SET
-                last = t.last,
-                next = t.next,
-                last_time_played = t.last_time_played
-            FROM (
-                SELECT * FROM "song_gaps" ORDER BY id
-            ) t
-            WHERE "setlists"."id" = t.id
+            select refresh_song_gaps();
             """,
         )
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
@@ -139,3 +90,24 @@ def band_premiere(cur: psycopg.Cursor) -> None:
         print("Could not complete operation:", e)
     else:
         print("Got band FTP")
+
+
+def update_notes(cur: psycopg.Cursor) -> None:
+    try:
+        cur.execute(
+            """
+            insert into
+                notes (event_id, num, note, setlist_id)
+            select
+                event_id,
+                num,
+                note,
+                id
+            from setlist_notes sn
+            on conflict (setlist_id, note) do nothing
+            """,
+        )
+    except (psycopg.OperationalError, psycopg.IntegrityError) as e:
+        print("Could not complete operation:", e)
+    else:
+        print("Inserted notes")

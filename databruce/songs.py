@@ -21,12 +21,12 @@ def update_song_info(cur: psycopg.Cursor) -> None:
     try:
         cur.execute(
             """
-            UPDATE "songs" SET first_played=null, last_played=null, num_plays_public=0, num_plays_private=0, num_plays_snippet = 0, opener = 0, closer = 0;
+            UPDATE "songs" SET first_event=null, last_event=null, num_plays_public=0, num_plays_private=0, num_plays_snippet = 0, opener = 0, closer = 0;
 
             UPDATE "songs"
             SET
-                first_played = t.first_played,
-                last_played = t.last_played,
+                first_event = t.first_event,
+                last_event = t.last_event,
                 num_plays_public = t.public_count,
                 num_plays_private = t.private_count,
                 opener = t.opener_count,
@@ -35,8 +35,8 @@ def update_song_info(cur: psycopg.Cursor) -> None:
             FROM (
                 SELECT
                     s.id,
-                    MIN(s1.event_id) FILTER (WHERE s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) AS first_played,
-                    MAX(s1.event_id) FILTER (WHERE s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) AS last_played,
+                    MIN(s1.event_id) FILTER (WHERE s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) AS first_event,
+                    MAX(s1.event_id) FILTER (WHERE s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) AS last_event,
                     COUNT(distinct s1.id) FILTER (WHERE s1.song_id = s.id AND s1.set_name IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) as public_count,
                     COUNT(distinct s1.id) FILTER (WHERE s1.song_id = s.id AND s1.set_name NOT IN ('Show', 'Set 1', 'Set 2', 'Encore', 'Pre-Show', 'Post-Show')) as private_count,
                     COUNT(distinct s1.id) FILTER (WHERE s1.song_id = s.id AND s1.position = 'Show Opener' AND e.setlist_certainty = 'Confirmed') AS opener_count,
@@ -45,7 +45,7 @@ def update_song_info(cur: psycopg.Cursor) -> None:
                 FROM songs s
                 LEFT JOIN setlists s1 ON s1.song_id = s.id
                 LEFT JOIN snippets sn ON sn.snippet_id = s.id
-                LEFT JOIN events e ON e.event_id = s1.event_id
+                LEFT JOIN events e ON e.id = s1.event_id
                 GROUP BY 1
                 ORDER BY 1
             ) t

@@ -97,31 +97,30 @@ def get_continent_by_country(country: int, cur: psycopg.Cursor) -> int | None:
         return None
 
 
-def update_venue_count(cur: psycopg.Cursor) -> None:
+def update_venues(cur: psycopg.Cursor) -> None:
     """Update VENUES with number of events."""
     try:
         cur.execute(
             """
-            UPDATE "venues" SET num_events=0, first_played=NULL, last_played=NULL;
-
-            UPDATE "venues"
-                SET
-                    num_events = t.num,
-                    first_played = t.first_played,
-                    last_played = t.last_played
-                FROM (
-                SELECT
-                    v.id,
-                    count(e.venue_id) AS num,
-                    MIN(e.event_id) AS first_played,
-                    MAX(e.event_id) AS last_played
-                FROM "venues" v
-                LEFT JOIN "events" e ON e.venue_id = v.id
-                WHERE e.event_id IS NOT NULL
-                GROUP BY v.id
-                ORDER BY v.id
-                ) t
-                WHERE "venues".id = t.id""",
+                UPDATE "venues" SET first_event = NULL, last_event = NULL, num_events = 0;
+                WITH event_stats AS (
+                    SELECT 
+                        venue_id,
+                        COUNT(*) AS total_count,
+                        (ARRAY_AGG(id ORDER BY event_id ASC))[1] AS first_id,
+                        (ARRAY_AGG(id ORDER BY event_id DESC))[1] AS last_id
+                    FROM events
+                    WHERE venue_id IS NOT NULL
+                    GROUP BY venue_id
+                )
+                UPDATE venues v
+                SET 
+                    first_event = es.first_id,
+                    last_event = es.last_id,
+                    num_events = es.total_count
+                FROM event_stats es
+                WHERE v.id = es.venue_id;
+            """,
         )
 
     except (psycopg.OperationalError, psycopg.IntegrityError) as e:
